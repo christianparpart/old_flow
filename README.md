@@ -38,28 +38,28 @@ Operands can be:
 Instructions are represented as follows:
 
     32  24  16  8    0
-    +---+---+---+----+
-    |           | OP |      Instruction with no register operands.
-    +---+---+---+----+
-
-    32  24  16  8    0
-    +---+---+---+----+
-    |       | A | OP |      Instruction with 1 register operands.
+    +---+---+---+----+      Instruction with no operands.
+    |           | OP |
     +---+---+---+----+
 
     32  24  16  8    0
-    +---+---+---+----+
-    |   | B | A | OP |      Instruction with 2 register operands.
-    +---+---+---+----+
-
-    32  24  16  8    0
-    +---+---+---+----+
-    | C | B | A | OP |      Instruction with 3 register operands.
+    +---+---+---+----+      Instruction with 1 operands.
+    |       | A | OP |
     +---+---+---+----+
 
     32  24  16  8    0
+    +---+---+---+----+      Instruction with 2 operands.
+    |   | B | A | OP |
     +---+---+---+----+
-    |   D   | A | OP |      Instruction with 1 register operand and a 16-bit immediate literal.
+
+    32  24  16  8    0
+    +---+---+---+----+      Instruction with 3 operands.
+    | C | B | A | OP |
+    +---+---+---+----+
+
+    32  24  16  8    0
+    +---+---+---+----+      Instruction with 2 operands.
+    |   D   | A | OP |      (second operand is usually an immediate literal).
     +---+---+---+----+
 
 ### Constants
@@ -90,14 +90,14 @@ Constants are all stored in a constant table.
 
 #### Constant Ops
 
-    Opcode  Mnemonic  A       D             Description
+    Opcode  Mnemonic  A       B             Description
     --------------------------------------------------------------------------------------------
     0x??    NMOV      vres    num           set integer A to integer constant D
     0x??    SMOV      vres    str           set string A to string constant D
     0x??    NCLEAR    vres    -             set integer A to 0.
     0x??    SCLEAR    vres    -             set string A to empty string.
 
-    Opcode  Mnemonic  A       B             Description
+    Opcode  Mnemonic  A       D             Description
     --------------------------------------------------------------------------------------------
     0x??    IMOV      vres    imm           set integer A to immediate 16-bit integer literal D
 
