@@ -29,11 +29,11 @@ In the following tables, the values have the following meaning:
 
 Operands can be:
 
-- immediate literal values
-- integer constants (immediate offset into the constant array)
-- string constants (immediate offset into the constant array)
-- registers (immediate offset into the register array)
-- program offsets (immeidate offset into the program's instruction array)
+- immediate literal values (*imm*)
+- integer constants, immediate offset into the constant array (*num*)
+- string constants, immediate offset into the constant array (*str*)
+- registers, immediate offset into the register array (*var*)
+- program offsets, immeidate offset into the program's instruction array (*pc*)
 
 Instructions are represented as follows:
 
