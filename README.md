@@ -1,34 +1,15 @@
 ## Flow Virtual Machine
 
+### TODO
+
+- use 64-bit instruction width instead of 32-bit
+- use 16-bit width register identification instead of 8-bit inside the opcode, effectively raising the register limit.
+- reconsider native call mechanism to (maybe) use dedicated opcodes for core native functions/handlers.
+
 ### Instruction Stream
 
 The program is stored as an array (stream) of fixed-length 32-bit instructions.
 Instructions are represented as follows:
-
-    32  24  16  8    0
-    +---+---+---+----+
-    |           | OP |      Instruction with no operands.
-    +---+---+---+----+
-
-    32  24  16  8    0
-    +---+---+---+----+
-    |       | A | OP |      Instruction with 1 operands.
-    +---+---+---+----+
-
-    32  24  16  8    0
-    +---+---+---+----+
-    |   | B | A | OP |      Instruction with 2 operands.
-    +---+---+---+----+
-
-    32  24  16  8    0
-    +---+---+---+----+
-    | C | B | A | OP |      Instruction with 3 operands.
-    +---+---+---+----+
-
-    32  24  16  8    0
-    +---+---+---+----+
-    |   D   | A | OP |      Instruction with 1 operand and a 16-bit immediate literal.
-    +---+---+---+----+
 
 The opcode always takes the lowest 8-bit of the instruction, also determining the
 interpretation of the higher 24 bits to one of the above variations.
@@ -38,6 +19,39 @@ the total number of registers to 256 while the first register contains always th
 
 Registers does not necessarily require them to be located in a CPU hardware
 but can also be represented as software array.
+
+In the following tables, the values have the following meaning:
+
+- *OP*: opcode
+- *A*: first operand
+- *B*: second operand
+- *D*: second operand (alternative)
+- *C*: third operand (illegal if *D* is used)
+
+    32  24  16  8    0
+    +---+---+---+----+
+    |           | OP |      Instruction with no register operands.
+    +---+---+---+----+
+
+    32  24  16  8    0
+    +---+---+---+----+
+    |       | A | OP |      Instruction with 1 register operands.
+    +---+---+---+----+
+
+    32  24  16  8    0
+    +---+---+---+----+
+    |   | B | A | OP |      Instruction with 2 register operands.
+    +---+---+---+----+
+
+    32  24  16  8    0
+    +---+---+---+----+
+    | C | B | A | OP |      Instruction with 3 register operands.
+    +---+---+---+----+
+
+    32  24  16  8    0
+    +---+---+---+----+
+    |   D   | A | OP |      Instruction with 1 register operand and a 16-bit immediate literal.
+    +---+---+---+----+
 
 ### Constants
 
