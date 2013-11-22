@@ -50,13 +50,6 @@ private:
 
 bool VMContext::run(const Instruction* program)
 {
-    #define OP opcode(*pc)
-    #define A operandA(*pc)
-    #define B operandB(*pc)
-    #define C operandC(*pc)
-    #define D operandD(*pc)
-    #define next goto *ops[opcode(*++pc)]
-
     static const void* ops[] = {
         [Opcode::IMOV] = &&l_imov,
         [Opcode::NMOV] = &&l_nmov,
@@ -67,7 +60,13 @@ bool VMContext::run(const Instruction* program)
 
     register const Instruction* pc = program;
 
-    int opc = OP;
+    #define OP opcode(*pc)
+    #define A  operandA(*pc)
+    #define B  operandB(*pc)
+    #define C  operandC(*pc)
+    #define D  operandD(*pc)
+    #define next goto *ops[opcode(*++pc)]
+
     goto *ops[OP];
 
 l_imov:
