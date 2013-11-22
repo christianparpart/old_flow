@@ -88,6 +88,12 @@ Constants are all stored in a constant table.
  - *imm* - immediate literal
  - *pc* - jump offset into program bytecode
 
+#### Debug Ops
+
+    Opcode  Mnemonic  A       B             Description
+    --------------------------------------------------------------------------------------------
+    0x??    NDUMPN    vbase   imm           dumps register contents of consecutive registers [vbase, vbase+N]
+
 #### Constant Ops
 
     Opcode  Mnemonic  A       B             Description
@@ -161,7 +167,7 @@ Constants are all stored in a constant table.
     --------------------------------------------------------------------------------------------
     0x??    JMP       -       pc            Unconditionally jump to $pc
     0x??    CONDBR    -       pc            Conditionally jump to $pc if prior CMP was true
-    0x??    EXIT      -       imm           End program with given boolean status code
+    0x??    EXIT      imm     -             End program with given boolean status code
 
 #### Native Call Ops
 
