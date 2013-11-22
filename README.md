@@ -2,17 +2,32 @@
 
 ### Instruction Stream
 
-The program is stored as an array (stream) of fixed-length instructions.
+The program is stored as an array (stream) of fixed-length 32-bit instructions.
 Instructions are represented as follows:
 
     32  24  16  8    0
     +---+---+---+----+
-    | C | B | A | OP |            Instruction with 3 register operands.
+    |           | OP |      Instruction with no register operands.
+    +---+---+---+----+
+
+    32  24  16  8    0
+    +---+---+---+----+
+    |       | A | OP |      Instruction with 1 register operands.
+    +---+---+---+----+
+
+    32  24  16  8    0
+    +---+---+---+----+
+    |   | B | A | OP |      Instruction with 2 register operands.
+    +---+---+---+----+
+
+    32  24  16  8    0
+    +---+---+---+----+
+    | C | B | A | OP |      Instruction with 3 register operands.
     +---+---+---+----+
 
     32      16  8    0
     +-------+---+----+
-    | D     | A | OP |            Instruction with 1 register operand and a 16-bit immediate literal.
+    | D     | A | OP |      Instruction with 1 register operand and a 16-bit immediate literal.
     +---+---+---+----+
 
 ### Constants
@@ -46,9 +61,12 @@ Constants are all stored in a constant table.
     --------------------------------------------------------------------------------------------
     0x??    NMOV      vdest   num         set integer A to integer constant D
     0x??    SMOV      vdest   str         set string A to string constant D
-    0x??    IMOV      vdest   imm         set integer A to immediate 16-bit integer literal D
     0x??    NCLEAR    vdest   -           set integer A to 0.
     0x??    SCLEAR    vdest   -           set string A to empty string.
+
+    Opcode  Mnemonic  A       B           Description
+    --------------------------------------------------------------------------------------------
+    0x??    IMOV      vdest   imm         set integer A to immediate 16-bit integer literal D
 
 #### Unary Ops
 
