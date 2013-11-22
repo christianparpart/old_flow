@@ -7,27 +7,27 @@ Instructions are represented as follows:
 
     32  24  16  8    0
     +---+---+---+----+
-    |           | OP |      Instruction with no register operands.
+    |           | OP |      Instruction with no operands.
     +---+---+---+----+
 
     32  24  16  8    0
     +---+---+---+----+
-    |       | A | OP |      Instruction with 1 register operands.
+    |       | A | OP |      Instruction with 1 operands.
     +---+---+---+----+
 
     32  24  16  8    0
     +---+---+---+----+
-    |   | B | A | OP |      Instruction with 2 register operands.
+    |   | B | A | OP |      Instruction with 2 operands.
     +---+---+---+----+
 
     32  24  16  8    0
     +---+---+---+----+
-    | C | B | A | OP |      Instruction with 3 register operands.
+    | C | B | A | OP |      Instruction with 3 operands.
     +---+---+---+----+
 
     32  24  16  8    0
     +---+---+---+----+
-    |   D   | A | OP |      Instruction with 1 register operand and a 16-bit immediate literal.
+    |   D   | A | OP |      Instruction with 1 operand and a 16-bit immediate literal.
     +---+---+---+----+
 
 The opcode always takes the lowest 8-bit of the instruction, also determining the
@@ -78,13 +78,19 @@ Constants are all stored in a constant table.
     --------------------------------------------------------------------------------------------
     0x??    IMOV      vres    imm           set integer A to immediate 16-bit integer literal D
 
+#### Cast Ops
+
+    0x??    S2I       vres    var           A = atoi(D)
+    0x??    I2S       vres    var           A = itoa(D)
+    0x??    I2B       vres    var           A = (D != 0) ? 1 : 0
+
 #### Unary Ops
 
     Opcode  Mnemonic  A       D             Description
     --------------------------------------------------------------------------------------------
     0x??    VMOV      vres    var           A = D
-    0x??    VNOT      vres    var           A = !D
     0x??    VNEG      vres    var           A = -D
+    0x??    VNOT      vres    var           A = ~B
     0x??    SLEN      vres    var           A = strlen(D)
 
 #### Binary Numerical Ops
@@ -114,6 +120,7 @@ Constants are all stored in a constant table.
     Opcode  Mnemonic  A       B     C       Description
     --------------------------------------------------------------------------------------------
     0x??    SCAT      vres    var   var     A = B + C
+    0x??    SSUBSTR   vres    var           A = substr(B, C /* offset */, C + 1 /* count */)
     0x??    SCMPEQ    vres    var   var     A = B == C
     0x??    SCMPNE    vres    var   var     A = B != C
     0x??    SCMPLE    vres    var   var     A = B <= C
@@ -128,7 +135,7 @@ Constants are all stored in a constant table.
 #### Control Ops
 
     Opcode  Mnemonic  A       D             Description
-      --------------------------------------------------------------------------------------------
+    --------------------------------------------------------------------------------------------
     0x??    JMP       -       pc            Unconditionally jump to $pc
     0x??    CONDBR    -       pc            Conditionally jump to $pc if prior CMP was true
     0x??    EXIT      -       imm           End program with given boolean status code
