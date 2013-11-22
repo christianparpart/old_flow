@@ -27,6 +27,14 @@ In the following tables, the values have the following meaning:
 - *D*: second operand (alternative)
 - *C*: third operand (illegal if *D* is used)
 
+Operands can be:
+
+- immediate literal values
+- integer constants (immediate offset into the constant array)
+- string constants (immediate offset into the constant array)
+- registers (immediate offset into the register array)
+- program offsets (immeidate offset into the program's instruction array)
+
 Instructions are represented as follows:
 
     32  24  16  8    0
