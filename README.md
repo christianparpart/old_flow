@@ -9,7 +9,6 @@
 ### Instruction Stream
 
 The program is stored as an array (stream) of fixed-length 32-bit instructions.
-Instructions are represented as follows:
 
 The opcode always takes the lowest 8-bit of the instruction, also determining the
 interpretation of the higher 24 bits to one of the above variations.
@@ -28,6 +27,7 @@ In the following tables, the values have the following meaning:
 - *D*: second operand (alternative)
 - *C*: third operand (illegal if *D* is used)
 
+Instructions are represented as follows:
 
     32  24  16  8    0
     +---+---+---+----+
