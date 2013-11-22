@@ -67,85 +67,97 @@ Constants are all stored in a constant table.
 
 #### Constant Ops
 
-    Opcode  Mnemonic  A       D           Description
+    Opcode  Mnemonic  A       D             Description
     --------------------------------------------------------------------------------------------
-    0x??    NMOV      vres    num         set integer A to integer constant D
-    0x??    SMOV      vres    str         set string A to string constant D
-    0x??    NCLEAR    vres    -           set integer A to 0.
-    0x??    SCLEAR    vres    -           set string A to empty string.
+    0x??    NMOV      vres    num           set integer A to integer constant D
+    0x??    SMOV      vres    str           set string A to string constant D
+    0x??    NCLEAR    vres    -             set integer A to 0.
+    0x??    SCLEAR    vres    -             set string A to empty string.
 
-    Opcode  Mnemonic  A       B           Description
+    Opcode  Mnemonic  A       B             Description
     --------------------------------------------------------------------------------------------
-    0x??    IMOV      vres    imm         set integer A to immediate 16-bit integer literal D
+    0x??    IMOV      vres    imm           set integer A to immediate 16-bit integer literal D
 
 #### Unary Ops
 
-    Opcode  Mnemonic  A       D           Description
+    Opcode  Mnemonic  A       D             Description
     --------------------------------------------------------------------------------------------
-    0x??    VMOV      vres    var         A = D
-    0x??    VNOT      vres    var         A = !D
-    0x??    VNEG      vres    var         A = -D
-    0x??    SLEN      vres    var         A = strlen(D)
+    0x??    VMOV      vres    var           A = D
+    0x??    VNOT      vres    var           A = !D
+    0x??    VNEG      vres    var           A = -D
+    0x??    SLEN      vres    var           A = strlen(D)
 
 #### Binary Numerical Ops
 
-    Opcode  Mnemonic  A       B     C     Description
+    Opcode  Mnemonic  A       B     C       Description
     --------------------------------------------------------------------------------------------
-    0x??    NADD      vres    var   var   A = B + C
-    0x??    NSUB      vres    var   var   A = B - C
-    0x??    NMUL      vres    var   var   A = B * C
-    0x??    NDIV      vres    var   var   A = B / C
-    0x??    NREM      vres    var   var   A = B % C
-    0x??    NSHL      vres    var   var   A = B << C
-    0x??    NSHR      vres    var   var   A = B >> C
-    0x??    NPOW      vres    var   var   A = B ** C
-    0x??    NAND      vres    var   var   A = B & C
-    0x??    NOR       vres    var   var   A = B | C
-    0x??    NXOR      vres    var   var   A = B ^ C
-    0x??    NCMPEQ    vres    var   var   A = B == C
-    0x??    NCMPNE    vres    var   var   A = B != C
-    0x??    NCMPLE    vres    var   var   A = B <= C
-    0x??    NCMPGE    vres    var   var   A = B >= C
-    0x??    NCMPLT    vres    var   var   A = B < C
-    0x??    NCMPGT    vres    var   var   A = B > C
+    0x??    NADD      vres    var   var     A = B + C
+    0x??    NSUB      vres    var   var     A = B - C
+    0x??    NMUL      vres    var   var     A = B * C
+    0x??    NDIV      vres    var   var     A = B / C
+    0x??    NREM      vres    var   var     A = B % C
+    0x??    NSHL      vres    var   var     A = B << C
+    0x??    NSHR      vres    var   var     A = B >> C
+    0x??    NPOW      vres    var   var     A = B ** C
+    0x??    NAND      vres    var   var     A = B & C
+    0x??    NOR       vres    var   var     A = B | C
+    0x??    NXOR      vres    var   var     A = B ^ C
+    0x??    NCMPEQ    vres    var   var     A = B == C
+    0x??    NCMPNE    vres    var   var     A = B != C
+    0x??    NCMPLE    vres    var   var     A = B <= C
+    0x??    NCMPGE    vres    var   var     A = B >= C
+    0x??    NCMPLT    vres    var   var     A = B < C
+    0x??    NCMPGT    vres    var   var     A = B > C
 
 #### Binary String Ops
 
-    Opcode  Mnemonic  A       B     C     Description
+    Opcode  Mnemonic  A       B     C       Description
     --------------------------------------------------------------------------------------------
-    0x??    SCAT      vres    var   var   A = B + C
-    0x??    SCMPEQ    vres    var   var   A = B == C
-    0x??    SCMPNE    vres    var   var   A = B != C
-    0x??    SCMPLE    vres    var   var   A = B <= C
-    0x??    SCMPGE    vres    var   var   A = B >= C
-    0x??    SCMPLT    vres    var   var   A = B < C
-    0x??    SCMPGT    vres    var   var   A = B > C
-    0x??    SCMPBEG   vres    var   var   A = B =^ C
-    0x??    SCMPEND   vres    var   var   A = B =$ C
-    0x??    SCMPSET   vres    var   var   A = B in C
-    0x??    RMATCH    vres    var   var   A = B =~ C
+    0x??    SCAT      vres    var   var     A = B + C
+    0x??    SCMPEQ    vres    var   var     A = B == C
+    0x??    SCMPNE    vres    var   var     A = B != C
+    0x??    SCMPLE    vres    var   var     A = B <= C
+    0x??    SCMPGE    vres    var   var     A = B >= C
+    0x??    SCMPLT    vres    var   var     A = B < C
+    0x??    SCMPGT    vres    var   var     A = B > C
+    0x??    SCMPBEG   vres    var   var     A = B =^ C
+    0x??    SCMPEND   vres    var   var     A = B =$ C
+    0x??    SCMPSET   vres    var   var     A = B in C
+    0x??    RMATCH    vres    var   var     A = B =~ C
 
-### Control Ops
+#### Control Ops
 
-    Opcode  Mnemonic  A       D           Description
+    Opcode  Mnemonic  A       D             Description
+      --------------------------------------------------------------------------------------------
+    0x??    JMP       -       pc            Unconditionally jump to $pc
+    0x??    CONDBR    -       pc            Conditionally jump to $pc if prior CMP was true
+    0x??    EXIT      -       imm           End program with given return boolean status code
+
+#### Native Call Ops
+
+    Opcode  Mnemonic  A       B     C       Description
     --------------------------------------------------------------------------------------------
-    0x??    JMP       -       pc          Unconditionally jump to $pc
-    0x??    CONDBR    -       pc          Conditionally jump to $pc if prior CMP was true
-    0x??    EXIT      -       imm         End program with given return boolean status code
+    0x??    FUNCTION  -       vbase imm     Invoke native func, returns an integer
+    0x??    FUNCTIONI vres    vbase imm     Invoke native func, returns an integer
+    0x??    FUNCTIONS vres    vbase imm     Invoke native func; returns a string
+    0x??    HANDLER   -       vbase imm     Invoke native handler (can cause program to exit)
 
-### Native Call Ops
+Native functions and handlers must have their parameters stored in consecutive registers directly after
+the function's ID.
 
-    Opcode  Mnemonic  A       B     C     Description
-    --------------------------------------------------------------------------------------------
-    0x??    FUNCTION  -       vbase imm   Invoke native func, returns an integer
-    0x??    FUNCTIONI vres    vbase imm   Invoke native func, returns an integer
-    0x??    FUNCTIONS vres    vbase imm   Invoke native func; returns a string
-    0x??    HANDLER   -       vbase imm   Invoke native handler (can cause program to exit)
+The consecuritve register array layout can be described as follows:
 
-Native functions and handlers must have their parameters stored in consecutive registers, starting from from B to (C-1).
+      vbase+0     vbase+1   ...   vbase+imm
+    +-----------+---------+-----+-----------+
+    | NativeID  | arg1    | ... | argN      |
+    +-----------+---------+-----+-----------+
 
-- A function call instruction (with opcode 0x11) that takes no arguments and no parameters could be represented as: `0x00000011`.
-- A function call that takes no arguments but returns one value to 0x22 could be represented as `0x00002211`.
-- A function call that takes one argument (e.g. 0x33) and returns one value could be represented as `0x34332211`.
-- A function call that takes two arguments and returns one value could be represented as `0x35332211`.
+##### Examples:
+
+We assume that the native function ID is stored in register `0x11`.
+
+- `0x001100??` - native call, returns nothing and takes no args
+- `0x001122??` - native call, returns a result to register `0x22`, takes no args
+- `0x011122??` - native call, returns a result, takes one arg into register `0x33`
+- `0x041122??` - native call, returns a result, takes 4 args starting from register `0x12` to `0x15` including.
 
