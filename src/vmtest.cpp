@@ -68,7 +68,6 @@ bool VMContext::run(const Instruction* program)
     register const Instruction* pc = program;
 
     int opc = OP;
-    printf("opc: %d\n", opc);
     goto *ops[OP];
 
 l_imov:
