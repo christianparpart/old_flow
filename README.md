@@ -12,7 +12,7 @@ Instructions are represented as follows:
 
     32      16  8    0
     +-------+---+----+
-    | D     | A | OP |            Instruction with 1 register operand and a 16-bit immediate integer literal.
+    | D     | A | OP |            Instruction with 1 register operand and a 16-bit immediate literal.
     +---+---+---+----+
 
 ### Constants
