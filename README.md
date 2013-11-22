@@ -59,7 +59,7 @@ Constants are all stored in a constant table.
     0x??    VNEG      vdest   var         A = -D
     0x??    SLEN      vdest   var         A = strlen(D)
 
-#### Binary
+#### Binary Numerical Ops
 
     Opcode  Mnemonic  A       B     C     Description
     --------------------------------------------------------------------------------------------
@@ -74,6 +74,28 @@ Constants are all stored in a constant table.
     0x??    NAND      vdest   var   var   A = B & C
     0x??    NOR       vdest   var   var   A = B | C
     0x??    NXOR      vdest   var   var   A = B ^ C
+    0x??    NCMPEQ    vdest   var   var   A = B == C
+    0x??    NCMPNE    vdest   var   var   A = B != C
+    0x??    NCMPLE    vdest   var   var   A = B <= C
+    0x??    NCMPGE    vdest   var   var   A = B >= C
+    0x??    NCMPLT    vdest   var   var   A = B < C
+    0x??    NCMPGT    vdest   var   var   A = B > C
+
+#### Binary String Ops
+
+    Opcode  Mnemonic  A       B     C     Description
+    --------------------------------------------------------------------------------------------
+    0x??    SCAT      vdest   var   var   A = B + C
+    0x??    SCMPEQ    vdest   var   var   A = B == C
+    0x??    SCMPNE    vdest   var   var   A = B != C
+    0x??    SCMPLE    vdest   var   var   A = B <= C
+    0x??    SCMPGE    vdest   var   var   A = B >= C
+    0x??    SCMPLT    vdest   var   var   A = B < C
+    0x??    SCMPGT    vdest   var   var   A = B > C
+    0x??    SCMPBEG   vdest   var   var   A = B =^ C
+    0x??    SCMPEND   vdest   var   var   A = B =$ C
+    0x??    SCMPSET   vdest   var   var   A = B in C
+    0x??    RMATCH    vdest   var   var   A = B =~ C
 
 ### Control Ops
 
@@ -83,15 +105,4 @@ Constants are all stored in a constant table.
     0x??    HANDLER   -       -     -     Invoke native handler (can cause program to exit)
     0x??    FUNCTIONI vdest   -     -     Invoke native function that returns an integer and takes no args
     0x??    FUNCTIONS vdest   -     -     Invoke native function that returns a string and takes no args
-
-### Compares
-
-    Opcode  Mnemonic  A       B     C     Description
-    ------------------------------------------------------------
-    0x??    NCMPEQ    vdest   var   var   A = B == C
-    0x??    NCMPNE    vdest   var   var   A = B == C
-    0x??    NCMPLE    vdest   var   var   A = B == C
-    0x??    NCMPGE    vdest   var   var   A = B == C
-    0x??    NCMPLT    vdest   var   var   A = B == C
-    0x??    NCMPGT    vdest   var   var   A = B == C
 
