@@ -28,6 +28,7 @@ In the following tables, the values have the following meaning:
 - *D*: second operand (alternative)
 - *C*: third operand (illegal if *D* is used)
 
+
     32  24  16  8    0
     +---+---+---+----+
     |           | OP |      Instruction with no register operands.
