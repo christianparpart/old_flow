@@ -10,11 +10,11 @@
 
 The program is stored as an array (stream) of fixed-length 32-bit instructions.
 
-The opcode always takes the lowest 8-bit of the instruction, also determining the
-interpretation of the higher 24 bits to one of the above variations.
+The opcode always takes the least-significant 8-bit of an instruction, also determining the
+interpretation of the higher 24 bits to one of the variations as described below.
 
 A register is always represented as an 8-bit index to the register array, effectively limiting
-the total number of registers to 256 while the first register contains always the flow control context.
+the total number of registers to 256.
 
 Registers does not necessarily require them to be located in a CPU hardware
 but can also be represented as software array.
@@ -24,16 +24,8 @@ In the following tables, the values have the following meaning:
 - *OP*: opcode
 - *A*: first operand
 - *B*: second operand
-- *D*: second operand (alternative)
+- *D*: second operand (alternative, immediate literal)
 - *C*: third operand (illegal if *D* is used)
-
-Operands can be:
-
-- immediate literal values (*imm*)
-- integer constants, immediate offset into the constant array (*num*)
-- string constants, immediate offset into the constant array (*str*)
-- registers, immediate offset into the register array (*var*)
-- program offsets, immeidate offset into the program's instruction array (*pc*)
 
 Instructions are represented as follows:
 
@@ -80,13 +72,13 @@ Constants are all stored in a constant table.
 
 #### Instruction Operand Types
 
- - *var* - variable slot
- - *vres* - variable slot, used as destination
- - *vbase* - variable slot, the first of a consecutive list of variables
- - *num* - number constant slot
- - *str* - string constant slot
- - *imm* - immediate literal
- - *pc* - jump offset into program bytecode
+- *imm* - immediate literal values
+- *num* - integer constants, immediate offset into the constant array
+- *str* - string constants, immediate offset into the constant array
+- *var* - registers, immediate offset into the register array
+- *vres* - same as *var* but used by to store the instruction's result.
+- *vbase* -  same as *var* but used to denote the first of a consecutive list of registers.
+- *pc* - jump program offsets, immedate offset into the program's instruction array
 
 #### Debug Ops
 

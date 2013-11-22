@@ -39,26 +39,20 @@ enum Opcode {
 
 enum class Signature {
     None = 0,
-    R,      // reg
-    RR,     // reg, reg
-    RRR,    // reg, reg, reg
-    RI,     // reg, imm16
-    I,      // imm16
-};
-
-enum class ArgsClass {
-    None = 0,
-    A,
-    AB,
-    ABC,
-    AD,
+    R,      // reg           (A)
+    RR,     // reg, reg      (AB)
+    RRR,    // reg, reg, reg (ABC)
+    RI,     // reg, imm16    (AD)
+    I,      // imm16         (D)
 };
 
 typedef uint32_t Instruction;
 typedef uint8_t Operand;
 typedef uint16_t ImmOperand;
 
+// --------------------------------------------------------------------------
 // encoder
+
 constexpr Instruction makeInstruction(Opcode opc) { return (Instruction) opc; }
 constexpr Instruction makeInstruction(Opcode opc, Operand op1) { return (opc | (op1 << 8)); }
 constexpr Instruction makeInstruction(Opcode opc, Operand op1, Operand op2) { return (opc | (op1 << 8) | (op2 << 16)); }
@@ -66,7 +60,9 @@ constexpr Instruction makeInstruction(Opcode opc, Operand op1, Operand op2, Oper
 constexpr Instruction makeInstructionImm(Opcode opc, ImmOperand op2) { return (opc | (op2 << 16)); }
 constexpr Instruction makeInstructionImm(Opcode opc, Operand op1, ImmOperand op2) { return (opc | (op1 << 8) | (op2 << 16)); }
 
+// --------------------------------------------------------------------------
 // decoder
+
 constexpr Opcode opcode(Instruction instr) { return static_cast<Opcode>(instr & 0xFF); }
 constexpr Operand operandA(Instruction instr) { return static_cast<Operand>((instr >> 8) & 0xFF); }
 constexpr Operand operandB(Instruction instr) { return static_cast<Operand>((instr >> 16) & 0xFF); }
@@ -76,6 +72,7 @@ constexpr ImmOperand operandD(Instruction instr) { return static_cast<Operand>((
 inline Signature operandSignature(Opcode opc) {
     static const Signature map[] = {
         [Opcode::IMOV]   = Signature::RI,
+        [Opcode::NMOV]   = Signature::RR,
         [Opcode::NADD]   = Signature::RRR,
         [Opcode::NDUMPN] = Signature::RI,
         [Opcode::EXIT]   = Signature::I,
@@ -83,19 +80,10 @@ inline Signature operandSignature(Opcode opc) {
     return map[opc];
 };
 
-inline ArgsClass operandArgsClass(Opcode opc) {
-    static const ArgsClass map[] = {
-        [Opcode::IMOV]   = ArgsClass::AD,
-        [Opcode::NADD]   = ArgsClass::ABC,
-        [Opcode::NDUMPN] = ArgsClass::AB,
-        [Opcode::EXIT]   = ArgsClass::A,
-    };
-    return map[opc];
-};
-
 inline const char* mnemonic(Opcode opc) {
     static const char* map[] = {
         [Opcode::IMOV]   = "IMOV",
+        [Opcode::NMOV]   = "NMOV",
         [Opcode::NADD]   = "NADD",
         [Opcode::NDUMPN] = "NDUMPN",
         [Opcode::EXIT]   = "EXIT",

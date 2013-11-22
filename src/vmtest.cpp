@@ -1,5 +1,7 @@
 #include <flow/Instruction.h>
+#include <cstdlib>
 #include <cstdio>
+#include <new>
 
 using namespace flow;
 
@@ -24,53 +26,74 @@ void disassemble(const Instruction* program, size_t n)
     }
 }
 
-bool vmrun(const Instruction* program)
+struct VMContext {
+    void* userdata;
+    uint64_t flags;
+    size_t dataSize;
+    uint64_t data[];
+
+    static VMContext* create(size_t slots) {
+        VMContext* p = (VMContext*) malloc(sizeof(VMContext) + slots * sizeof(uint64_t));
+        new (p) VMContext(slots);
+        return p;
+    };
+
+    static void operator delete (void* p) {
+        free(p);
+    }
+
+    bool run(const Instruction* program);
+
+private:
+    VMContext(size_t slots) : userdata(nullptr), flags(0), dataSize(slots) { }
+};
+
+bool VMContext::run(const Instruction* program)
 {
+    #define OP opcode(*pc)
+    #define A operandA(*pc)
+    #define B operandB(*pc)
+    #define C operandC(*pc)
+    #define D operandD(*pc)
+    #define next goto *ops[opcode(*++pc)]
+
     static const void* ops[] = {
         [Opcode::IMOV] = &&l_imov,
+        [Opcode::NMOV] = &&l_nmov,
         [Opcode::NADD] = &&l_nadd,
         [Opcode::NDUMPN] = &&l_ndumpn,
         [Opcode::EXIT] = &&l_exit,
     };
 
-    uint64_t data[256];
-
     register const Instruction* pc = program;
-    Opcode opc;
-    Operand A, B, C;
-    ImmOperand D;
 
-    for (;;) {
-        opc = opcode(*pc);
-        A = operandA(*pc);
-        B = operandB(*pc);
-        C = operandC(*pc);
-        D = operandD(*pc);
+    int opc = OP;
+    printf("opc: %d\n", opc);
+    goto *ops[OP];
 
-        pc++;
+l_imov:
+    data[A] = D;
+    next;
 
-        goto *ops[opc];
+l_nmov:
+    data[A] = data[B];
+    next;
 
-    l_imov:
-        data[A] = D;
-        continue;
+l_nadd:
+    data[A] = data[B] + data[C];
+    next;
 
-    l_nadd:
-        data[A] = data[B] + data[C];
-        continue;
-
-    l_ndumpn:
-        printf("regdump: ");
-        for (int i = 0; i < B; ++i) {
-            if (i) printf(", ");
-            printf("r%d = %li", A + i, (int64_t)data[A + i]);
-        }
-        if (B) printf("\n");
-        continue;
-
-    l_exit:
-        return D != 0;
+l_ndumpn:
+    printf("regdump: ");
+    for (int i = 0; i < B; ++i) {
+        if (i) printf(", ");
+        printf("r%d = %li", A + i, (int64_t)data[A + i]);
     }
+    if (B) printf("\n");
+    next;
+
+l_exit:
+    return D != 0;
 }
 
 static const Instruction program[] = {
@@ -78,17 +101,23 @@ static const Instruction program[] = {
     makeInstructionImm(Opcode::IMOV, 2, 7),     // r2 = 7
     makeInstruction(Opcode::NADD, 3, 1, 2),     // r3 = r1 + r2
     makeInstruction(Opcode::NDUMPN, 1, 3),      // regdump (r1 to r3)
+    makeInstruction(Opcode::NMOV, 2, 1),        // r2 = r1
+    makeInstruction(Opcode::NMOV, 3, 1),        // r3 = r1
+    makeInstruction(Opcode::NDUMPN, 1, 3),      // regdump (r1 to r3)
     makeInstructionImm(Opcode::EXIT, 1),        // EXIT true
 };
 
 int main()
 {
+
     printf("Disassembling program (%zi instructions)\n\n", sizeof(program) / sizeof(*program));
     disassemble(program, sizeof(program) / sizeof(*program));
 
+    VMContext* cx = VMContext::create(32);
     printf("\nRunning program\n");
-    bool rv = vmrun(program);
-
+    bool rv = cx->run(program);
     printf("%s\n", rv ? "\nSuccess" : "\nFailed");
+    delete cx;
+
     return 0;
 }
