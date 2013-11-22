@@ -131,7 +131,7 @@ Constants are all stored in a constant table.
       --------------------------------------------------------------------------------------------
     0x??    JMP       -       pc            Unconditionally jump to $pc
     0x??    CONDBR    -       pc            Conditionally jump to $pc if prior CMP was true
-    0x??    EXIT      -       imm           End program with given return boolean status code
+    0x??    EXIT      -       imm           End program with given boolean status code
 
 #### Native Call Ops
 
