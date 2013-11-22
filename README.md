@@ -25,10 +25,19 @@ Instructions are represented as follows:
     | C | B | A | OP |      Instruction with 3 register operands.
     +---+---+---+----+
 
-    32      16  8    0
-    +-------+---+----+
-    | D     | A | OP |      Instruction with 1 register operand and a 16-bit immediate literal.
+    32  24  16  8    0
     +---+---+---+----+
+    |   D   | A | OP |      Instruction with 1 register operand and a 16-bit immediate literal.
+    +---+---+---+----+
+
+The opcode always takes the lowest 8-bit of the instruction, also determining the
+interpretation of the higher 24 bits to one of the above variations.
+
+A register is always represented as an 8-bit index to the register array, effectively limiting
+the total number of registers to 256 while the first register contains always the flow control context.
+
+Registers does not necessarily require them to be located in a CPU hardware
+but can also be represented as software array.
 
 ### Constants
 
