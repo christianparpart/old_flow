@@ -103,6 +103,6 @@ Constants are all stored in a constant table.
     --------------------------------------------------------------------------------------------
     0x??    EXIT      imm     -     -     End program with given return boolean status code
     0x??    HANDLER   -       -     -     Invoke native handler (can cause program to exit)
-    0x??    FUNCTIONI vdest   -     -     Invoke native function that returns an integer and takes no args
-    0x??    FUNCTIONS vdest   -     -     Invoke native function that returns a string and takes no args
+    0x??    FUNCTIONI vdest   -     -     Invoke native func, returns an integer, takes no args
+    0x??    FUNCTIONS vdest   -     -     Invoke native func; returns a string, takes no args
 
