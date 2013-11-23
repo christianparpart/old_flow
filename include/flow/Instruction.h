@@ -17,6 +17,9 @@ enum Opcode {
     IMOV,           // A = D/imm
     NMOV,           // A = B
 
+    NCONST,         // A = numberConstants[D]
+    SCONST,         // A = stringConstants[D]
+
     // binary: numerical
     NADD,           // A = B + C
     NSUB,           // A = B - C
@@ -80,6 +83,7 @@ inline Signature operandSignature(Opcode opc) {
         // copy
         [Opcode::IMOV]      = Signature::RI,
         [Opcode::NMOV]      = Signature::RR,
+        [Opcode::NCONST]    = Signature::RI,
         // binary numerical
         [Opcode::NADD]      = Signature::RRR,
         [Opcode::NSUB]      = Signature::RRR,
@@ -111,6 +115,7 @@ inline const char* mnemonic(Opcode opc) {
         // copy
         [Opcode::IMOV]   = "IMOV",
         [Opcode::NMOV]   = "NMOV",
+        [Opcode::NCONST] = "NCONST",
         // debug
         [Opcode::NDUMPN] = "NDUMPN",
         // numeric

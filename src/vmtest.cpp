@@ -1,4 +1,7 @@
 #include <flow/Instruction.h>
+#include <initializer_list>
+#include <vector>
+#include <utility>
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
@@ -6,7 +9,131 @@
 
 using namespace flow;
 
-void disassemble(Instruction pc, size_t ip)
+class FlowContext;
+class FlowProgram;
+
+class FlowProgram // {{{
+{
+    /* {{{ possible binary file format
+     * ----------------------------------------------
+     * u32                  magic number (0xbeafbabe)
+     * u32                  version
+     * u64                  flags
+     * u64                  register count
+     * u64                  code start
+     * u64                  code size
+     * u64                  integer const-table start
+     * u64                  integer const-table element count
+     * u64                  string const-table start
+     * u64                  string const-table element count
+     * u64                  debug source-lines-table start
+     * u64                  debug source-lines-table element count
+     *
+     * u32[]                code segment
+     * u64[]                integer const-table segment
+     * u64[]                string const-table segment
+     * {u32, u8[]}[]        strings
+     * {u32, u32, u32}[]    debug source lines segment
+     */ // }}}
+public:
+    FlowProgram();
+    FlowProgram(
+        const std::vector<Instruction>& instructions,
+        const std::vector<uint64_t>& constNumbers,
+        const std::vector<std::pair<char*, size_t>>& constStrings,
+        size_t numRegisters);
+    ~FlowProgram();
+
+    const std::vector<Instruction>& instructions() const;
+    const std::vector<uint64_t>& numbers() const;
+    const std::vector<std::pair<char*, size_t>>& strings() const;
+    size_t registerCount() const;
+
+    FlowContext* createContext();
+
+private:
+    std::vector<Instruction> instructions_;
+    std::vector<uint64_t> numbers_;
+    std::vector<std::pair<char*, size_t>> strings_;
+    size_t registerCount_;
+}; // }}}
+
+typedef uint64_t FlowRegister;
+
+struct FlowContext // {{{
+{
+    FlowProgram* program;
+    void* userdata;
+    FlowRegister data[];
+
+    static FlowContext* create(FlowProgram* program) {
+        FlowContext* cx = (FlowContext*) malloc(sizeof(FlowContext) + program->registerCount() * sizeof(uint64_t));
+        new (cx) FlowContext(program);
+        return cx;
+    };
+
+    static void operator delete (void* p) {
+        free(p);
+    }
+
+    bool run();
+
+private:
+    FlowContext(FlowProgram* _program) : program(_program), userdata(nullptr) { }
+}; // }}}
+
+// {{{ FlowProgram impl
+FlowProgram::FlowProgram() :
+    instructions_(),
+    numbers_(),
+    strings_(),
+    registerCount_(0)
+{
+}
+
+FlowProgram::FlowProgram(
+        const std::vector<Instruction>& instructions,
+        const std::vector<uint64_t>& numbers,
+        const std::vector<std::pair<char*, size_t>>& strings,
+        size_t numRegisters) :
+    instructions_(instructions),
+    numbers_(numbers),
+    strings_(strings),
+    registerCount_(numRegisters)
+{
+}
+
+FlowProgram::~FlowProgram()
+{
+}
+
+inline const std::vector<Instruction>& FlowProgram::instructions() const
+{
+    return instructions_;
+}
+
+inline const std::vector<uint64_t>& FlowProgram::numbers() const
+{
+    return numbers_;
+}
+
+inline const std::vector<std::pair<char*, size_t>>& FlowProgram::strings() const
+{
+    return strings_;
+}
+
+size_t FlowProgram::registerCount() const
+{
+    return registerCount_;
+}
+
+FlowContext* FlowProgram::createContext()
+{
+    return FlowContext::create(this);
+}
+// }}}
+
+void disassemble(Instruction pc, size_t ip, const char* comment = nullptr)
 {
     Opcode opc = opcode(pc);
     Operand A = operandA(pc);
@@ -14,14 +141,34 @@ void disassemble(Instruction pc, size_t ip)
     Operand C = operandC(pc);
     ImmOperand D = operandD(pc);
     const char* mnemo = mnemonic(opc);
+    size_t n = 0;
+    int rv = 0;
+
+    rv = printf(" %3zu: %-10s", ip, mnemo);
+    if (rv > 0) {
+        n += rv;
+    }
 
     switch (operandSignature(opc)) {
-        case Signature::None: printf(" %3zu: %-10s\n", ip, mnemo); break;
-        case Signature::R:    printf(" %3zu: %-10s r%d\n", ip, mnemo, A); break;
-        case Signature::RR:   printf(" %3zu: %-10s r%d, r%d\n", ip, mnemo, A, B); break;
-        case Signature::RRR:  printf(" %3zu: %-10s r%d, r%d, r%d\n", ip, mnemo, A, B, C); break;
-        case Signature::RI:   printf(" %3zu: %-10s r%d, %d\n", ip, mnemo, A, D); break;
-        case Signature::I:    printf(" %3zu: %-10s %d\n", ip, mnemo, D); break;
+        case Signature::None: break;
+        case Signature::R:    rv = printf(" r%d", A); break;
+        case Signature::RR:   rv = printf(" r%d, r%d", A, B); break;
+        case Signature::RRR:  rv = printf(" r%d, r%d, r%d", A, B, C); break;
+        case Signature::RI:   rv = printf(" r%d, %d", A, D); break;
+        case Signature::I:    rv = printf(" %d", D); break;
+    }
+
+    if (rv > 0) {
+        n += rv;
+    }
+
+    if (comment && *comment) {
+        for (; n < 30; ++n) {
+            printf(" ");
+        }
+        printf("; %s\n", comment);
+    } else {
+        printf("\n");
     }
 }
 
@@ -33,28 +180,7 @@ void disassemble(const Instruction* program, size_t n)
     }
 }
 
-struct VMContext {
-    void* userdata;
-    size_t dataSize;
-    uint64_t data[];
-
-    static VMContext* create(size_t slots) {
-        VMContext* p = (VMContext*) malloc(sizeof(VMContext) + slots * sizeof(uint64_t));
-        new (p) VMContext(slots);
-        return p;
-    };
-
-    static void operator delete (void* p) {
-        free(p);
-    }
-
-    bool run(const Instruction* program);
-
-private:
-    VMContext(size_t slots) : userdata(nullptr), dataSize(slots) { }
-};
-
-bool VMContext::run(const Instruction* program)
+bool FlowContext::run()
 {
     // {{{ jump table
     static const void* ops[] = {
@@ -69,6 +195,7 @@ bool VMContext::run(const Instruction* program)
         // copy
         [Opcode::IMOV]      = &&l_imov,
         [Opcode::NMOV]      = &&l_nmov,
+        [Opcode::NCONST]    = &&l_nconst,
 
         // binary: numerical
         [Opcode::NADD]      = &&l_nadd,
@@ -91,10 +218,18 @@ bool VMContext::run(const Instruction* program)
     };
     // }}}
 
-    register const Instruction* pc = program;
+    register const Instruction* pc = program->instructions().data();
     size_t icount = 0;
 
-    #define INSTR do { icount++; disassemble(*pc, pc - program); } while (0)
+    #define INSTR do { icount++; disassemble(*pc, pc - program->instructions().data()); } while (0)
+    #define INSTR2(op, x, y) \
+        do { \
+            char buf[80]; \
+            snprintf(buf, sizeof(buf), "%li %s %li", \
+                    data[x], op, data[y]); \
+            icount++; \
+            disassemble(*pc, pc - program->instructions().data(), buf); \
+        } while (0)
     #define OP opcode(*pc)
     #define A  operandA(*pc)
     #define B  operandB(*pc)
@@ -112,13 +247,13 @@ l_exit:
 
 l_jmp:
     INSTR;
-    pc = program + D;
+    pc = program->instructions().data() + D;
     goto *ops[OP];
 
 l_condbr:
     INSTR;
     if (data[A] != 0) {
-        pc = program + D;
+        pc = program->instructions().data() + D;
         goto *ops[OP];
     } else {
         next;
@@ -134,6 +269,11 @@ l_nmov:
     INSTR;
     data[A] = data[B];
     next;
+
+l_nconst:
+    INSTR;
+    data[A] = program->numbers()[D];
+    next;
     // }}}
     // {{{ debug
 l_ndumpn:
@@ -148,102 +288,91 @@ l_ndumpn:
     // }}}
     // {{{ binary numerical
 l_nadd:
-    INSTR;
+    INSTR2("+", B, C);
     data[A] = data[B] + data[C];
     next;
 
 l_nsub:
-    INSTR;
+    INSTR2("-", B, C);
     data[A] = data[B] - data[C];
     next;
 
 l_nmul:
-    INSTR;
+    INSTR2("*", B, C);
     data[A] = data[B] * data[C];
     next;
 
 l_ndiv:
-    INSTR;
+    INSTR2("/", B, C);
     data[A] = data[B] / data[C];
     next;
 
 l_nrem:
-    INSTR;
+    INSTR2("%", B, C);
     data[A] = data[B] % data[C];
     next;
 
 l_nshl:
-    INSTR;
+    INSTR2("<<", B, C);
     data[A] = data[B] << data[C];
     next;
 
 l_nshr:
-    INSTR;
+    INSTR2(">>", B, C);
     data[A] = data[B] >> data[C];
     next;
 
 l_npow:
-    INSTR;
+    INSTR2("**", B, C);
     data[A] = powl(data[B], data[C]);
     next;
 
 l_nand:
-    INSTR;
+    INSTR2("&", B, C);
     data[A] = data[B] & data[C];
     next;
 
 l_nor:
-    INSTR;
+    INSTR2("|", B, C);
     data[A] = data[B] | data[C];
     next;
 
 l_nxor:
-    INSTR;
+    INSTR2("^", B, C);
     data[A] = data[B] ^ data[C];
     next;
 
 l_ncmpeq:
-    INSTR;
+    INSTR2("==", B, C);
     data[A] = data[B] == data[C];
     next;
 
 l_ncmpne:
-    INSTR;
+    INSTR2("!=", B, C);
     data[A] = data[B] != data[C];
     next;
 
 l_ncmple:
-    INSTR;
+    INSTR2("<=", B, C);
     data[A] = data[B] <= data[C];
     next;
 
 l_ncmpge:
-    INSTR;
+    INSTR2(">=", B, C);
     data[A] = data[B] >= data[C];
     next;
 
 l_ncmplt:
-    INSTR;
+    INSTR2("<", B, C);
     data[A] = data[B] < data[C];
     next;
 
 l_ncmpgt:
-    INSTR;
+    INSTR2(">", B, C);
     data[A] = data[B] > data[C];
     next;
     // }}}
 }
-
-static const Instruction program1[] = {
-    makeInstructionImm(Opcode::IMOV, 1, 42),    // r1 = 42
-    makeInstructionImm(Opcode::IMOV, 2, 7),     // r2 = 7
-    makeInstruction(Opcode::NADD, 3, 1, 2),     // r3 = r1 + r2
-    makeInstruction(Opcode::NDUMPN, 1, 3),      // regdump (r1 to r3)
-    makeInstruction(Opcode::NMOV, 2, 1),        // r2 = r1
-    makeInstruction(Opcode::NMOV, 3, 1),        // r3 = r1
-    makeInstruction(Opcode::NDUMPN, 1, 3),      // regdump (r1 to r3)
-    makeInstructionImm(Opcode::EXIT, 1),        // EXIT true
-};
 
 /*
  * r1 = 0;
@@ -255,12 +384,12 @@ static const Instruction program1[] = {
  * }
  *
  */
-static const Instruction program2[] = {
+static const std::vector<Instruction> code2 = {
     // prolog
-    makeInstruction(Opcode::IMOV, 0, 4),        // r0 = 4
-    makeInstruction(Opcode::IMOV, 1, 0),        // r1 = 0
-    makeInstruction(Opcode::IMOV, 2, 0),        // r2 = 0
-    makeInstruction(Opcode::IMOV, 4, 1),        // r4 = 1
+    makeInstructionImm(Opcode::IMOV, 0, 4),     // r0 = 4
+    makeInstructionImm(Opcode::IMOV, 1, 0),     // r1 = 0
+    makeInstructionImm(Opcode::IMOV, 2, 0),     // r2 = 0
+    makeInstructionImm(Opcode::IMOV, 4, 1),     // r4 = 1
     makeInstructionImm(Opcode::JMP, 7),         // IP = condition
 
     // loop body
@@ -273,19 +402,25 @@ static const Instruction program2[] = {
 
     // epilog
     makeInstruction(Opcode::NDUMPN, 0, 5),
+
+    makeInstruction(Opcode::NCONST, 0, 0),      // r0 = nconst[0]
+    makeInstruction(Opcode::NCONST, 1, 1),      // r1 = nconst[1]
+    makeInstruction(Opcode::NSUB, 2, 0, 1),     // r2 = r0 - r1
+    makeInstruction(Opcode::NDUMPN, 0, 3),
+
     makeInstructionImm(Opcode::EXIT, 1),
 };
 
 int main()
 {
+    FlowProgram p(code2, {123456789, 56789}, {}, 32);
 
-    printf("Disassembling program (%zi instructions)\n\n", sizeof(program2) / sizeof(*program2));
-    disassemble(program2, sizeof(program2) / sizeof(*program2));
-
-    VMContext* cx = VMContext::create(32);
+    printf("Disassembling program (%zi instructions)\n\n", p.instructions().size());
+    disassemble(p.instructions().data(), p.instructions().size());
     printf("\nRunning program\n");
-    bool rv = cx->run(program2);
-    printf("%s\n", rv ? "\nSuccess" : "\nFailed");
+
+    FlowContext* cx = p.createContext();
+    bool rv = cx->run();
     delete cx;
 
     return 0;

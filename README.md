@@ -91,14 +91,14 @@ Constants are all stored in a constant table.
 
     Opcode  Mnemonic  A       B             Description
     --------------------------------------------------------------------------------------------
-    0x??    NMOV      vres    num           set integer A to integer constant D (from constant pool)
-    0x??    SMOV      vres    str           set string A to string constant D (from constant pool)
+    0x??    NMOV      vres    var           copy B to A
     0x??    NCLEAR    vres    -             set integer A to 0.
     0x??    SCLEAR    vres    -             set string A to empty string.
 
     Opcode  Mnemonic  A       D             Description
     --------------------------------------------------------------------------------------------
     0x??    IMOV      vres    imm           set integer A to immediate 16-bit integer literal D
+    0x??    NCONST    vres    imm           set integer A to value at constant integer pool's offset D
 
 #### Conversion Ops
 
