@@ -59,8 +59,8 @@ Instructions are represented as follows:
 
 Constants are all stored in a constant table.
 
-- integer constants: 64 bite signed
-- string constants: C (null-terminated) string with a pre-computed string length stored also
+- integer constants: 64-bit signed
+- string constants: raw string plus its string length
 
 ### Opcodes
 
