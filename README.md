@@ -5,6 +5,7 @@
 - use 64-bit instruction width instead of 32-bit
 - use 16-bit width register identification instead of 8-bit inside the opcode, effectively raising the register limit.
 - reconsider native call mechanism to (maybe) use dedicated opcodes for core native functions/handlers.
+- support multi-branch instruction (merely like tableswitch in JVM)
 
 ### Instruction Stream
 
@@ -158,7 +159,7 @@ Constants are all stored in a constant table.
     Opcode  Mnemonic  A       D             Description
     --------------------------------------------------------------------------------------------
     0x??    JMP       -       pc            Unconditionally jump to $pc
-    0x??    CONDBR    -       pc            Conditionally jump to $pc if prior CMP was true
+    0x??    CONDBR    var     pc            Conditionally jump to $pc if prior variable evaluates to true
     0x??    EXIT      imm     -             End program with given boolean status code
 
 #### Native Call Ops
