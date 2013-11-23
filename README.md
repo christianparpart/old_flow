@@ -91,8 +91,8 @@ Constants are all stored in a constant table.
 
     Opcode  Mnemonic  A       B             Description
     --------------------------------------------------------------------------------------------
-    0x??    NMOV      vres    num           set integer A to integer constant D
-    0x??    SMOV      vres    str           set string A to string constant D
+    0x??    NMOV      vres    num           set integer A to integer constant D (from constant pool)
+    0x??    SMOV      vres    str           set string A to string constant D (from constant pool)
     0x??    NCLEAR    vres    -             set integer A to 0.
     0x??    SCLEAR    vres    -             set string A to empty string.
 
@@ -100,7 +100,7 @@ Constants are all stored in a constant table.
     --------------------------------------------------------------------------------------------
     0x??    IMOV      vres    imm           set integer A to immediate 16-bit integer literal D
 
-#### Cast Ops
+#### Conversion Ops
 
     0x??    S2I       vres    var           A = atoi(D)
     0x??    I2S       vres    var           A = itoa(D)
