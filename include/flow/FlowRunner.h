@@ -13,16 +13,20 @@ typedef uint64_t FlowRegister;
 class FlowRunner
 {
 private:
-    FlowProgram* program;
-    void* userdata;
-    FlowRegister data[];
+    FlowProgram* program_;
+    void* userdata_;
+    FlowRegister data_[];
 
 public:
-    bool run();
-
     static std::unique_ptr<FlowRunner> create(FlowProgram* program);
     static void operator delete (void* p);
 
+    bool run();
+
+    FlowProgram* program() const { return program_; }
+    void* userdata() const { return userdata_; }
+    void setUserData(void* p) { userdata_ = p; }
+
 private:
-    FlowRunner(FlowProgram* _program) : program(_program), userdata(nullptr) { }
+    FlowRunner(FlowProgram* program) : program_(program), userdata_(nullptr) { }
 };

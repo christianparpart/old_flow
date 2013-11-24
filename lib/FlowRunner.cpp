@@ -23,6 +23,23 @@ void FlowRunner::operator delete (void* p)
 
 bool FlowRunner::run()
 {
+    #define OP opcode(*pc)
+    #define A  operandA(*pc)
+    #define B  operandB(*pc)
+    #define C  operandC(*pc)
+    #define D  operandD(*pc)
+    #define next goto *ops[opcode(*++pc)]
+
+    #define INSTR do { icount++; disassemble(*pc, pc - program_->instructions().data()); } while (0)
+    #define INSTR2(op, x, y) \
+        do { \
+            char buf[80]; \
+            snprintf(buf, sizeof(buf), "%li %s %li", \
+                    data_[x], op, data_[y]); \
+            icount++; \
+            disassemble(*pc, pc - program_->instructions().data(), buf); \
+        } while (0)
+
     // {{{ jump table
     static const void* ops[] = {
         // control
@@ -59,42 +76,26 @@ bool FlowRunner::run()
     };
     // }}}
 
-    register const FlowInstruction* pc = program->instructions().data();
+    register const FlowInstruction* pc = program_->instructions().data();
     uint64_t icount = 0;
-
-    #define INSTR do { icount++; disassemble(*pc, pc - program->instructions().data()); } while (0)
-    #define INSTR2(op, x, y) \
-        do { \
-            char buf[80]; \
-            snprintf(buf, sizeof(buf), "%li %s %li", \
-                    data[x], op, data[y]); \
-            icount++; \
-            disassemble(*pc, pc - program->instructions().data(), buf); \
-        } while (0)
-    #define OP opcode(*pc)
-    #define A  operandA(*pc)
-    #define B  operandB(*pc)
-    #define C  operandC(*pc)
-    #define D  operandD(*pc)
-    #define next goto *ops[opcode(*++pc)]
 
     goto *ops[OP];
 
     // {{{ control
 l_exit:
     INSTR;
-    printf("exiting program. ran %llu instructions\n", icount);
+    printf("exiting program. ran %lu instructions\n", icount);
     return D != 0;
 
 l_jmp:
     INSTR;
-    pc = program->instructions().data() + D;
+    pc = program_->instructions().data() + D;
     goto *ops[OP];
 
 l_condbr:
     INSTR;
-    if (data[A] != 0) {
-        pc = program->instructions().data() + D;
+    if (data_[A] != 0) {
+        pc = program_->instructions().data() + D;
         goto *ops[OP];
     } else {
         next;
@@ -103,17 +104,17 @@ l_condbr:
     // {{{ copy
 l_imov:
     INSTR;
-    data[A] = D;
+    data_[A] = D;
     next;
 
 l_nmov:
     INSTR;
-    data[A] = data[B];
+    data_[A] = data_[B];
     next;
 
 l_nconst:
     INSTR;
-    data[A] = program->numbers()[D];
+    data_[A] = program_->numbers()[D];
     next;
     // }}}
     // {{{ debug
@@ -122,7 +123,7 @@ l_ndumpn:
     printf("regdump: ");
     for (int i = 0; i < B; ++i) {
         if (i) printf(", ");
-        printf("r%d = %li", A + i, (int64_t)data[A + i]);
+        printf("r%d = %li", A + i, (int64_t)data_[A + i]);
     }
     if (B) printf("\n");
     next;
@@ -130,87 +131,87 @@ l_ndumpn:
     // {{{ binary numerical
 l_nadd:
     INSTR2("+", B, C);
-    data[A] = data[B] + data[C];
+    data_[A] = data_[B] + data_[C];
     next;
 
 l_nsub:
     INSTR2("-", B, C);
-    data[A] = data[B] - data[C];
+    data_[A] = data_[B] - data_[C];
     next;
 
 l_nmul:
     INSTR2("*", B, C);
-    data[A] = data[B] * data[C];
+    data_[A] = data_[B] * data_[C];
     next;
 
 l_ndiv:
     INSTR2("/", B, C);
-    data[A] = data[B] / data[C];
+    data_[A] = data_[B] / data_[C];
     next;
 
 l_nrem:
     INSTR2("%", B, C);
-    data[A] = data[B] % data[C];
+    data_[A] = data_[B] % data_[C];
     next;
 
 l_nshl:
     INSTR2("<<", B, C);
-    data[A] = data[B] << data[C];
+    data_[A] = data_[B] << data_[C];
     next;
 
 l_nshr:
     INSTR2(">>", B, C);
-    data[A] = data[B] >> data[C];
+    data_[A] = data_[B] >> data_[C];
     next;
 
 l_npow:
     INSTR2("**", B, C);
-    data[A] = powl(data[B], data[C]);
+    data_[A] = powl(data_[B], data_[C]);
     next;
 
 l_nand:
     INSTR2("&", B, C);
-    data[A] = data[B] & data[C];
+    data_[A] = data_[B] & data_[C];
     next;
 
 l_nor:
     INSTR2("|", B, C);
-    data[A] = data[B] | data[C];
+    data_[A] = data_[B] | data_[C];
     next;
 
 l_nxor:
     INSTR2("^", B, C);
-    data[A] = data[B] ^ data[C];
+    data_[A] = data_[B] ^ data_[C];
     next;
 
 l_ncmpeq:
     INSTR2("==", B, C);
-    data[A] = data[B] == data[C];
+    data_[A] = data_[B] == data_[C];
     next;
 
 l_ncmpne:
     INSTR2("!=", B, C);
-    data[A] = data[B] != data[C];
+    data_[A] = data_[B] != data_[C];
     next;
 
 l_ncmple:
     INSTR2("<=", B, C);
-    data[A] = data[B] <= data[C];
+    data_[A] = data_[B] <= data_[C];
     next;
 
 l_ncmpge:
     INSTR2(">=", B, C);
-    data[A] = data[B] >= data[C];
+    data_[A] = data_[B] >= data_[C];
     next;
 
 l_ncmplt:
     INSTR2("<", B, C);
-    data[A] = data[B] < data[C];
+    data_[A] = data_[B] < data_[C];
     next;
 
 l_ncmpgt:
     INSTR2(">", B, C);
-    data[A] = data[B] > data[C];
+    data_[A] = data_[B] > data_[C];
     next;
     // }}}
 }
