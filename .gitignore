@@ -1,3 +1,12 @@
+include/flow/sysconfig.h
+*.a
+*.so
+*.so.*
 .*.swp
+sandbox
+Makefile
+cmake_install.cmake
+CMakeFiles
+CMakeCache.txt
 src/vmtest
 src/vmtest.asm
