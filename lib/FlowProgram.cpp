@@ -18,6 +18,8 @@
  * u64                  integer const-table element count
  * u64                  string const-table start
  * u64                  string const-table element count
+ * u64                  regex const-table start (stored as string)
+ * u64                  regex const-table element count
  * u64                  debug source-lines-table start
  * u64                  debug source-lines-table element count
  *
@@ -32,6 +34,7 @@ FlowProgram::FlowProgram() :
     instructions_(),
     numbers_(),
     strings_(),
+    regularExpressions_(),
     registerCount_(0)
 {
 }
@@ -39,11 +42,13 @@ FlowProgram::FlowProgram() :
 FlowProgram::FlowProgram(
         const std::vector<FlowInstruction>& instructions,
         const std::vector<uint64_t>& numbers,
-        const std::vector<std::pair<char*, size_t>>& strings,
+        const std::vector<std::string>& strings,
+        const std::vector<std::string>& regularExpressions,
         size_t numRegisters) :
     instructions_(instructions),
     numbers_(numbers),
     strings_(strings),
+    regularExpressions_(regularExpressions),
     registerCount_(numRegisters)
 {
 }

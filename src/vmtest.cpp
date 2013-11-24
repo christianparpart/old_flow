@@ -49,7 +49,7 @@ static const std::vector<FlowInstruction> code2 = {
 
 int main()
 {
-    FlowProgram p(code2, {123456789, 56789}, {}, 32);
+    FlowProgram p(code2, {123456789, 56789}, {}, {}, 32);
 
     printf("Disassembling program (%zi instructions)\n\n", p.instructions().size());
     disassemble(p.instructions().data(), p.instructions().size());

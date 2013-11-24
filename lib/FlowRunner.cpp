@@ -6,6 +6,7 @@
 #include <memory>
 #include <new>
 #include <cstdlib>
+#include <cstring>
 #include <cstdio>
 #include <cmath>
 
@@ -14,6 +15,13 @@ std::unique_ptr<FlowRunner> FlowRunner::create(FlowProgram* program)
     FlowRunner* p = (FlowRunner*) malloc(sizeof(FlowRunner) + program->registerCount() * sizeof(uint64_t));
     new (p) FlowRunner(program);
     return std::unique_ptr<FlowRunner>(p);
+}
+
+FlowRunner::FlowRunner(FlowProgram* program) :
+    program_(program),
+    userdata_(nullptr)
+{
+    memset(data_, 0, sizeof(FlowRunner) * program->registerCount());
 }
 
 void FlowRunner::operator delete (void* p)

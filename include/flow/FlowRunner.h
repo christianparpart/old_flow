@@ -28,5 +28,6 @@ public:
     void setUserData(void* p) { userdata_ = p; }
 
 private:
-    FlowRunner(FlowProgram* program) : program_(program), userdata_(nullptr) { }
+    explicit FlowRunner(FlowProgram* program);
+    FlowRunner(FlowProgram&) = delete;
 };
