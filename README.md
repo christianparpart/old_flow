@@ -13,7 +13,7 @@
 ### Strings
 
 All strings in flow are immutable. So all string instructions do not disinguish between
-strings from constant table, dynamically allocated strings, or strings as retrieves from
+strings from constant table, dynamically allocated strings, or strings as retrieved from
 another virtual machine instruction (such as a native function call).
 
 ### Instruction Stream
