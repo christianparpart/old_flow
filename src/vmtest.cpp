@@ -47,9 +47,41 @@ static const std::vector<FlowInstruction> code2 = {
     makeInstructionImm(FlowOpcode::EXIT, 1),
 };
 
+/*
+ * r0 = " "
+ * r1 = "Hello"
+ * r2 = "World"
+ * r3 = r1 + r2
+ * sdump r3
+ *
+ */
+static const std::vector<FlowInstruction> code3 = {
+    makeInstructionImm(FlowOpcode::SCONST, 0, 0),   // r1 = sconst[0]
+    makeInstructionImm(FlowOpcode::SCONST, 1, 1),   // r1 = sconst[1]
+    makeInstructionImm(FlowOpcode::SCONST, 2, 2),   // r2 = sconst[2]
+    makeInstruction(FlowOpcode::SADD, 3, 1, 0),
+    makeInstruction(FlowOpcode::SADD, 3, 3, 2),
+    makeInstruction(FlowOpcode::SPRINT, 3),
+
+    makeInstructionImm(FlowOpcode::IMOV, 5, 1),
+    makeInstructionImm(FlowOpcode::IMOV, 6, 9),
+    makeInstruction(FlowOpcode::SSUBSTR, 4, 3, 5),
+    makeInstruction(FlowOpcode::SPRINT, 4),
+    makeInstruction(FlowOpcode::NDUMPN, 0, 7),
+
+    makeInstructionImm(FlowOpcode::SCONST, 7, 4),   // r7 = sconst[4] /* "rl" */
+    makeInstruction(FlowOpcode::SCONTAINS, 8, 3, 4),
+    makeInstruction(FlowOpcode::NDUMPN, 7, 2),
+
+    makeInstructionImm(FlowOpcode::EXIT, 1),
+};
+
 int main()
 {
-    FlowProgram p(code2, {123456789, 56789}, {}, {}, 32);
+    FlowProgram p(code2,
+        {123456789, 56789},
+        {" ", "Hello", "World", "!", "rl"},
+        {}, 32);
 
     printf("Disassembling program (%zi instructions)\n\n", p.instructions().size());
     disassemble(p.instructions().data(), p.instructions().size());

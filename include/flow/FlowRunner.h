@@ -1,12 +1,18 @@
 #pragma once
+
 #include <flow/FlowProgram.h>
 #include <flow/FlowInstruction.h>
 #include <utility>
+#include <list>
 #include <memory>
 #include <new>
 #include <cstdint>
 #include <cstdio>
 #include <cmath>
+#include <string>
+
+typedef std::string FlowString;
+typedef int64_t FlowNumber;
 
 typedef uint64_t FlowRegister;
 
@@ -15,6 +21,9 @@ class FlowRunner
 private:
     FlowProgram* program_;
     void* userdata_;
+
+    std::list<std::string> stringGarbage_;
+
     FlowRegister data_[];
 
 public:
@@ -29,5 +38,6 @@ public:
 
 private:
     explicit FlowRunner(FlowProgram* program);
-    FlowRunner(FlowProgram&) = delete;
+    FlowRunner(FlowRunner&) = delete;
+    FlowRunner& operator=(FlowRunner&) = delete;
 };

@@ -19,9 +19,10 @@ std::unique_ptr<FlowRunner> FlowRunner::create(FlowProgram* program)
 
 FlowRunner::FlowRunner(FlowProgram* program) :
     program_(program),
-    userdata_(nullptr)
+    userdata_(nullptr),
+    stringGarbage_()
 {
-    memset(data_, 0, sizeof(FlowRunner) * program->registerCount());
+    memset(data_, 0, sizeof(FlowRegister) * program->registerCount());
 }
 
 void FlowRunner::operator delete (void* p)
@@ -37,6 +38,9 @@ bool FlowRunner::run()
     #define C  operandC(*pc)
     #define D  operandD(*pc)
     #define next goto *ops[opcode(*++pc)]
+
+    #define toString(R) (*(std::string*)data_[R])
+    #define toNumber(R) ((FlowNumber) data_[R])
 
     #define INSTR do { icount++; disassemble(*pc, pc - program_->instructions().data()); } while (0)
     #define INSTR2(op, x, y) \
@@ -59,11 +63,12 @@ bool FlowRunner::run()
         [FlowOpcode::NDUMPN]    = &&l_ndumpn,
 
         // copy
-        [FlowOpcode::IMOV]      = &&l_imov,
-        [FlowOpcode::NMOV]      = &&l_nmov,
-        [FlowOpcode::NCONST]    = &&l_nconst,
+        [FlowOpcode::MOV]       = &&l_mov,
 
-        // binary: numerical
+        // numerical
+        [FlowOpcode::IMOV]      = &&l_imov,
+        [FlowOpcode::NCONST]    = &&l_nconst,
+        [FlowOpcode::NNEG]      = &&l_nneg,
         [FlowOpcode::NADD]      = &&l_nadd,
         [FlowOpcode::NSUB]      = &&l_nsub,
         [FlowOpcode::NMUL]      = &&l_nmul,
@@ -81,6 +86,32 @@ bool FlowRunner::run()
         [FlowOpcode::NCMPGE]    = &&l_ncmpge,
         [FlowOpcode::NCMPLT]    = &&l_ncmplt,
         [FlowOpcode::NCMPGT]    = &&l_ncmpgt,
+
+        // string op
+        [FlowOpcode::SCONST]    = &&l_sconst,
+        [FlowOpcode::SADD]      = &&l_sadd,
+        [FlowOpcode::SSUBSTR]   = &&l_ssubstr,
+        [FlowOpcode::SCMPEQ]    = &&l_scmpeq,
+        [FlowOpcode::SCMPNE]    = &&l_scmpne,
+        [FlowOpcode::SCMPLE]    = &&l_scmple,
+        [FlowOpcode::SCMPGE]    = &&l_scmpge,
+        [FlowOpcode::SCMPLT]    = &&l_scmplt,
+        [FlowOpcode::SCMPGT]    = &&l_scmpgt,
+        [FlowOpcode::SCMPBEG]   = &&l_scmpbeg,
+        [FlowOpcode::SCMPEND]   = &&l_scmpend,
+        [FlowOpcode::SCONTAINS] = &&l_scontains,
+        [FlowOpcode::SLEN]      = &&l_slen,
+        [FlowOpcode::SPRINT]    = &&l_sprint,
+
+        // regex
+        [FlowOpcode::SREGMATCH] = &&l_sregmatch,
+        [FlowOpcode::SREGGROUP] = &&l_sreggroup,
+
+        // conversion
+        [FlowOpcode::S2I] = &&l_s2i,
+        [FlowOpcode::I2S] = &&l_i2s,
+        [FlowOpcode::SURLENC] = &&l_surlenc,
+        [FlowOpcode::SURLDEC] = &&l_surldec,
     };
     // }}}
 
@@ -110,19 +141,9 @@ l_condbr:
     }
     // }}}
     // {{{ copy
-l_imov:
-    INSTR;
-    data_[A] = D;
-    next;
-
-l_nmov:
+l_mov:
     INSTR;
     data_[A] = data_[B];
-    next;
-
-l_nconst:
-    INSTR;
-    data_[A] = program_->numbers()[D];
     next;
     // }}}
     // {{{ debug
@@ -136,45 +157,60 @@ l_ndumpn:
     if (B) printf("\n");
     next;
     // }}}
-    // {{{ binary numerical
+    // {{{ numerical
+l_imov:
+    INSTR;
+    data_[A] = D;
+    next;
+
+l_nconst:
+    INSTR;
+    data_[A] = program_->numbers()[D];
+    next;
+
+l_nneg:
+    INSTR;
+    data_[A] = (FlowRegister) (-toNumber(B));
+    next;
+
 l_nadd:
     INSTR2("+", B, C);
-    data_[A] = data_[B] + data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) + toNumber(C));
     next;
 
 l_nsub:
     INSTR2("-", B, C);
-    data_[A] = data_[B] - data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) - toNumber(C));
     next;
 
 l_nmul:
     INSTR2("*", B, C);
-    data_[A] = data_[B] * data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) * toNumber(C));
     next;
 
 l_ndiv:
     INSTR2("/", B, C);
-    data_[A] = data_[B] / data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) / toNumber(C));
     next;
 
 l_nrem:
     INSTR2("%", B, C);
-    data_[A] = data_[B] % data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) % toNumber(C));
     next;
 
 l_nshl:
     INSTR2("<<", B, C);
-    data_[A] = data_[B] << data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) << toNumber(C));
     next;
 
 l_nshr:
     INSTR2(">>", B, C);
-    data_[A] = data_[B] >> data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) >> toNumber(C));
     next;
 
 l_npow:
     INSTR2("**", B, C);
-    data_[A] = powl(data_[B], data_[C]);
+    data_[A] = static_cast<FlowRegister>(powl(toNumber(B), toNumber(C)));
     next;
 
 l_nand:
@@ -194,32 +230,153 @@ l_nxor:
 
 l_ncmpeq:
     INSTR2("==", B, C);
-    data_[A] = data_[B] == data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) == toNumber(C));
     next;
 
 l_ncmpne:
     INSTR2("!=", B, C);
-    data_[A] = data_[B] != data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) != toNumber(C));
     next;
 
 l_ncmple:
     INSTR2("<=", B, C);
-    data_[A] = data_[B] <= data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) <= toNumber(C));
     next;
 
 l_ncmpge:
     INSTR2(">=", B, C);
-    data_[A] = data_[B] >= data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) >= toNumber(C));
     next;
 
 l_ncmplt:
     INSTR2("<", B, C);
-    data_[A] = data_[B] < data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) < toNumber(C));
     next;
 
 l_ncmpgt:
     INSTR2(">", B, C);
-    data_[A] = data_[B] > data_[C];
+    data_[A] = static_cast<FlowRegister>(toNumber(B) > toNumber(C));
+    next;
+    // }}}
+    // {{{ string
+l_sconst: // A = stringConstTable[D]
+    INSTR;
+    data_[A] = (FlowRegister) &program_->strings()[D];
+    next;
+
+l_sadd: // A = concat(B, C)
+    INSTR;
+    stringGarbage_.push_back(toString(B) + toString(C));
+    data_[A] = (FlowRegister) &stringGarbage_.back();
+    next;
+
+l_ssubstr: // A = substr(B, C /*offset*/, C+1 /*count*/)
+    INSTR;
+    stringGarbage_.push_back(toString(B).substr(data_[C], data_[C + 1]));
+    data_[A] = (FlowRegister) &stringGarbage_.back();
+    next;
+
+l_scmpeq:
+    INSTR;
+    data_[A] = toString(B) == toString(C);
+    next;
+
+l_scmpne:
+    INSTR;
+    data_[A] = toString(B) != toString(C);
+    next;
+
+l_scmple:
+    INSTR;
+    data_[A] = toString(B) <= toString(C);
+    next;
+
+l_scmpge:
+    INSTR;
+    data_[A] = toString(B) >= toString(C);
+    next;
+
+l_scmplt:
+    INSTR;
+    data_[A] = toString(B) < toString(C);
+    next;
+
+l_scmpgt:
+    INSTR;
+    data_[A] = toString(B) > toString(C);
+    next;
+
+l_scmpbeg:
+    INSTR;
+    {
+        const auto& b = toString(B);
+        const auto& c = toString(C);
+        data_[A] = b.size() >= c.size() && strncmp(b.c_str(), c.c_str(), c.size()) == 0;
+    }
+    next;
+
+l_scmpend:
+    INSTR;
+    {
+        const auto& b = toString(B);
+        const auto& c = toString(C);
+        data_[A] = b.size() >= c.size() && strcmp(b.c_str() + c.size() - c.size(), c.c_str()) == 0;
+    }
+    next;
+
+l_scontains:
+    INSTR;
+    data_[A] = toString(B).find(toString(C)) != std::string::npos;
+    next;
+
+l_slen:
+    INSTR;
+    data_[A] = toString(B).size();
+    next;
+
+l_sprint:
+    INSTR;
+    printf("%s\n", toString(A).c_str());
+    next;
+    // }}}
+    // {{{ regex
+l_sregmatch: // A = B =~ C
+    INSTR;
+    // TODO
+    next;
+
+l_sreggroup: // A = regex.match(B)
+    INSTR;
+    // TODO
+    next;
+    // }}}
+    // {{{ conversion
+l_s2i: // A = atoi(B)
+    INSTR;
+    data_[A] = strtoll(toString(B).c_str(), nullptr, 10);
+    next;
+
+l_i2s: // A = itoa(B)
+    INSTR;
+    {
+        char buf[64];
+        if (snprintf(buf, sizeof(buf), "%li", (int64_t) data_[B]) > 0) {
+            stringGarbage_.push_back(buf);
+        } else {
+            stringGarbage_.push_back(std::string());
+        }
+        data_[A] = (FlowRegister) &stringGarbage_.back();
+    }
+    next;
+
+l_surlenc: // A = urlencode(B)
+    INSTR;
+    // TODO
+    next;
+
+l_surldec: // B = urldecode(B)
+    INSTR;
+    // TODO
     next;
     // }}}
 }

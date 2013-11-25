@@ -13,13 +13,12 @@ enum FlowOpcode {
     NDUMPN,         // dump registers range [A .. (D - A)]
 
     // copy
+    MOV,            // A = B
+
+    // numerical
     IMOV,           // A = D/imm
-    NMOV,           // A = B
-
     NCONST,         // A = numberConstants[D]
-    SCONST,         // A = stringConstants[D]
-
-    // binary: numerical
+    NNEG,           // A = -A
     NADD,           // A = B + C
     NSUB,           // A = B - C
     NMUL,           // A = B * C
@@ -37,6 +36,33 @@ enum FlowOpcode {
     NCMPGE,         // A = B >= C
     NCMPLT,         // A = B < C
     NCMPGT,         // A = B > C
+
+    // string
+    SCONST,         // A = stringConstants[D]
+    SADD,           // A = B + C
+    SADDMULTI,      // A = concat(B /*rbase*/, C /*count*/)
+    SSUBSTR,        // A = substr(B, C /*offset*/, C+1 /*count*/)
+    SCMPEQ,         // A = B == C
+    SCMPNE,         // A = B != C
+    SCMPLE,         // A = B <= C
+    SCMPGE,         // A = B >= C
+    SCMPLT,         // A = B < C
+    SCMPGT,         // A = B > C
+    SCMPBEG,        // A = B =^ C           /* B begins with C */
+    SCMPEND,        // A = B =$ C           /* B ends with C */
+    SCONTAINS,      // A = B in C           /* B is contained in C */
+    SLEN,           // A = strlen(B)
+    SPRINT,         // puts(A)              /* prints string A to stdout */
+
+    // regex
+    SREGMATCH,      // A = B =~ C           /* regex match against regexPool[C] */
+    SREGGROUP,      // A = regex.match(B)   /* regex match result */
+
+    // conversion
+    I2S,            // A = itoa(B)
+    S2I,            // A = atoi(B)
+    SURLENC,        // A = urlencode(B)
+    SURLDEC,        // A = urldecode(B)
 };
 
 enum class FlowInstructionSig {
@@ -87,10 +113,11 @@ inline FlowInstructionSig operandSignature(FlowOpcode opc) {
         // debug
         [FlowOpcode::NDUMPN]    = FlowInstructionSig::RI,
         // copy
+        [FlowOpcode::MOV]       = FlowInstructionSig::RR,
+        // numerical
         [FlowOpcode::IMOV]      = FlowInstructionSig::RI,
-        [FlowOpcode::NMOV]      = FlowInstructionSig::RR,
         [FlowOpcode::NCONST]    = FlowInstructionSig::RI,
-        // binary numerical
+        [FlowOpcode::NNEG]      = FlowInstructionSig::RR,
         [FlowOpcode::NADD]      = FlowInstructionSig::RRR,
         [FlowOpcode::NSUB]      = FlowInstructionSig::RRR,
         [FlowOpcode::NMUL]      = FlowInstructionSig::RRR,
@@ -108,6 +135,29 @@ inline FlowInstructionSig operandSignature(FlowOpcode opc) {
         [FlowOpcode::NCMPGE]    = FlowInstructionSig::RRR,
         [FlowOpcode::NCMPLT]    = FlowInstructionSig::RRR,
         [FlowOpcode::NCMPGT]    = FlowInstructionSig::RRR,
+        // string
+        [FlowOpcode::SCONST]    = FlowInstructionSig::RI,
+        [FlowOpcode::SADD]      = FlowInstructionSig::RRR,
+        [FlowOpcode::SSUBSTR]   = FlowInstructionSig::RRR,
+        [FlowOpcode::SCMPEQ]    = FlowInstructionSig::RRR,
+        [FlowOpcode::SCMPNE]    = FlowInstructionSig::RRR,
+        [FlowOpcode::SCMPLE]    = FlowInstructionSig::RRR,
+        [FlowOpcode::SCMPGE]    = FlowInstructionSig::RRR,
+        [FlowOpcode::SCMPLT]    = FlowInstructionSig::RRR,
+        [FlowOpcode::SCMPGT]    = FlowInstructionSig::RRR,
+        [FlowOpcode::SCMPBEG]   = FlowInstructionSig::RRR,
+        [FlowOpcode::SCMPEND]   = FlowInstructionSig::RRR,
+        [FlowOpcode::SCONTAINS] = FlowInstructionSig::RRR,
+        [FlowOpcode::SLEN]      = FlowInstructionSig::R,
+        [FlowOpcode::SPRINT]    = FlowInstructionSig::R,
+        // regex
+        [FlowOpcode::SREGMATCH] = FlowInstructionSig::RRR,
+        [FlowOpcode::SREGGROUP] = FlowInstructionSig::R,
+        // conversion
+        [FlowOpcode::I2S]       = FlowInstructionSig::RR,
+        [FlowOpcode::S2I]       = FlowInstructionSig::RR,
+        [FlowOpcode::SURLENC]   = FlowInstructionSig::RR,
+        [FlowOpcode::SURLDEC]   = FlowInstructionSig::RR,
     };
     return map[opc];
 };
@@ -119,12 +169,13 @@ inline const char* mnemonic(FlowOpcode opc) {
         [FlowOpcode::JMP]    = "JMP",
         [FlowOpcode::CONDBR] = "CONDBR",
         // copy
-        [FlowOpcode::IMOV]   = "IMOV",
-        [FlowOpcode::NMOV]   = "NMOV",
-        [FlowOpcode::NCONST] = "NCONST",
+        [FlowOpcode::MOV]    = "MOV",
         // debug
         [FlowOpcode::NDUMPN] = "NDUMPN",
-        // numeric
+        // numerical
+        [FlowOpcode::IMOV]   = "IMOV",
+        [FlowOpcode::NCONST] = "NCONST",
+        [FlowOpcode::NNEG]   = "NNEG",
         [FlowOpcode::NADD]   = "NADD",
         [FlowOpcode::NSUB]   = "NSUB",
         [FlowOpcode::NMUL]   = "NMUL",
@@ -142,6 +193,29 @@ inline const char* mnemonic(FlowOpcode opc) {
         [FlowOpcode::NCMPGE] = "NCMPGE",
         [FlowOpcode::NCMPLT] = "NCMPLT",
         [FlowOpcode::NCMPGT] = "NCMPGT",
+        // string
+        [FlowOpcode::SCONST]    = "SCONST",
+        [FlowOpcode::SADD]      = "SADD",
+        [FlowOpcode::SSUBSTR]   = "SSUBSTR",
+        [FlowOpcode::SCMPEQ]    = "SCMPEQ",
+        [FlowOpcode::SCMPNE]    = "SCMPNE",
+        [FlowOpcode::SCMPLE]    = "SCMPLE",
+        [FlowOpcode::SCMPGE]    = "SCMPGE",
+        [FlowOpcode::SCMPLT]    = "SCMPLT",
+        [FlowOpcode::SCMPGT]    = "SCMPGT",
+        [FlowOpcode::SCMPBEG]   = "SCMPBEG",
+        [FlowOpcode::SCMPEND]   = "SCMPEND",
+        [FlowOpcode::SCONTAINS] = "SCONTAINS",
+        [FlowOpcode::SLEN]      = "SLEN",
+        [FlowOpcode::SPRINT]    = "SPRINT",
+        // regex
+        [FlowOpcode::SREGMATCH] = "SREGMATCH",
+        [FlowOpcode::SREGGROUP] = "SREGGROUP",
+        // conversion
+        [FlowOpcode::I2S]       = "I2S",
+        [FlowOpcode::S2I]       = "S2I",
+        [FlowOpcode::SURLENC]   = "SURLENC",
+        [FlowOpcode::SURLDEC]   = "SURLDEC",
     };
     return map[opc];
 }

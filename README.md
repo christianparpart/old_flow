@@ -2,10 +2,19 @@
 
 ### TODO
 
-- use 64-bit instruction width instead of 32-bit
-- use 16-bit width register identification instead of 8-bit inside the opcode, effectively raising the register limit.
-- reconsider native call mechanism to (maybe) use dedicated opcodes for core native functions/handlers.
+- maybe use 16-bit width register identification instead of 8-bit inside the opcode, effectively raising the register limit, would raise instruction size from 32-bit to 64-bit.
 - support multi-branch instruction (merely like tableswitch in JVM)
+- code: regex impl
+- code: native function call
+- code: native handler call
+- code: multi branch instruction (design & impl)
+- code: FlowAST-to-IR compiler to actually get this to life
+
+### Strings
+
+All strings in flow are immutable. So all string instructions do not disinguish between
+strings from constant table, dynamically allocated strings, or strings as retrieves from
+another virtual machine instruction (such as a native function call).
 
 ### Instruction Stream
 
@@ -30,37 +39,38 @@ In the following tables, the values have the following meaning:
 
 Instructions are represented as follows:
 
-    32  24  16  8    0
-    +---+---+---+----+      Instruction with no operands.
-    |           | OP |
-    +---+---+---+----+
+    0    8  16  24  32
+    +----+---+---+---+      Instruction with no operands.
+    | OP |           |
+    +----+---+---+---+
 
-    32  24  16  8    0
-    +---+---+---+----+      Instruction with 1 operands.
-    |       | A | OP |
-    +---+---+---+----+
+    0    8  16  24  32
+    +----+---+---+---+      Instruction with 1 operands.
+    | OP | A |       |
+    +----+---+---+---+
 
-    32  24  16  8    0
-    +---+---+---+----+      Instruction with 2 operands.
-    |   | B | A | OP |
-    +---+---+---+----+
+    0    8  16  24  32
+    +----+---+---+---+      Instruction with 2 operands.
+    | OP | A | B |   |
+    +----+---+---+---+
 
-    32  24  16  8    0
-    +---+---+---+----+      Instruction with 3 operands.
-    | C | B | A | OP |
-    +---+---+---+----+
+    0    8  16  24  32
+    +----+---+---+---+      Instruction with 3 operands.
+    | OP | A | B | C |
+    +----+---+---+---+
 
-    32  24  16  8    0
-    +---+---+---+----+      Instruction with 2 operands.
-    |   D   | A | OP |      (second operand is usually an immediate literal).
-    +---+---+---+----+
+    0    8  16  24  32
+    +----+---+---+---+      Instruction with 2 operands.
+    | OP | A |   D   |      (second operand is usually an immediate literal, used as index
+    +----+---+---+---+       to some constant table or to represent a 16bit short integer).
 
 ### Constants
 
-Constants are all stored in a constant table.
+Constants are all stored in a constant table, each type of constants in its own table.
 
 - integer constants: 64-bit signed
 - string constants: raw string plus its string length
+- regular expression constants: defined as strings, but may be pre-compiled into dedicated AST for faster execution during runtime.
 
 ### Opcodes
 
@@ -74,11 +84,11 @@ Constants are all stored in a constant table.
 #### Instruction Operand Types
 
 - *imm* - immediate literal values
-- *num* - integer constants, immediate offset into the constant array
-- *str* - string constants, immediate offset into the constant array
-- *var* - registers, immediate offset into the register array
+- *num* - offset into the register array, cast to an integer.
+- *str* - offset into the register array, cast to a string object.
+- *var* - immediate offset into the register array, any type.
 - *vres* - same as *var* but used by to store the instruction's result.
-- *vbase* -  same as *var* but used to denote the first of a consecutive list of registers.
+- *vbase* - same as *var* but used to denote the first of a consecutive list of registers.
 - *pc* - jump program offsets, immedate offset into the program's instruction array
 
 #### Debug Ops
@@ -91,7 +101,6 @@ Constants are all stored in a constant table.
 
     Opcode  Mnemonic  A       B             Description
     --------------------------------------------------------------------------------------------
-    0x??    NMOV      vres    var           copy B to A
     0x??    NCLEAR    vres    -             set integer A to 0.
     0x??    SCLEAR    vres    -             set string A to empty string.
 
@@ -102,18 +111,21 @@ Constants are all stored in a constant table.
 
 #### Conversion Ops
 
-    0x??    S2I       vres    var           A = atoi(D)
-    0x??    I2S       vres    var           A = itoa(D)
-    0x??    I2B       vres    var           A = (D != 0) ? 1 : 0
+    Opcode  Mnemonic  A       D             Description
+    --------------------------------------------------------------------------------------------
+    0x??    I2S       vres    num           A = itoa(D)
+    0x??    S2I       vres    str           A = atoi(D)
+    0x??    SURLENC   vres    str           A = urlencode(B)
+    0x??    SURLDEC   vres    str           A = urldecode(B)
 
 #### Unary Ops
 
     Opcode  Mnemonic  A       D             Description
     --------------------------------------------------------------------------------------------
-    0x??    VMOV      vres    var           A = D
-    0x??    VNEG      vres    var           A = -D
-    0x??    VNOT      vres    var           A = ~B
-    0x??    SLEN      vres    var           A = strlen(D)
+    0x??    MOV       vres    var           A = D         /* raw register value copy */
+    0x??    VNEG      vres    num           A = -D
+    0x??    VNOT      vres    num           A = ~B
+    0x??    SLEN      vres    str           A = strlen(D)
 
 #### Binary Numerical Ops
 
@@ -137,29 +149,34 @@ Constants are all stored in a constant table.
     0x??    NCMPLT    vres    var   var     A = B < C
     0x??    NCMPGT    vres    var   var     A = B > C
 
-#### Binary String Ops
+#### String Ops
+
+    Opcode  Mnemonic  A       D             Description
+    --------------------------------------------------------------------------------------------
+    0x??    SCONST    vres    imm           A = stringConstantPool[D]
 
     Opcode  Mnemonic  A       B     C       Description
     --------------------------------------------------------------------------------------------
-    0x??    SCAT      vres    var   var     A = B + C
-    0x??    SSUBSTR   vres    var           A = substr(B, C /* offset */, C + 1 /* count */)
-    0x??    SCMPEQ    vres    var   var     A = B == C
-    0x??    SCMPNE    vres    var   var     A = B != C
-    0x??    SCMPLE    vres    var   var     A = B <= C
-    0x??    SCMPGE    vres    var   var     A = B >= C
-    0x??    SCMPLT    vres    var   var     A = B < C
-    0x??    SCMPGT    vres    var   var     A = B > C
-    0x??    SCMPBEG   vres    var   var     A = B =^ C
-    0x??    SCMPEND   vres    var   var     A = B =$ C
-    0x??    SCMPSET   vres    var   var     A = B in C
-    0x??    RMATCH    vres    var   var     A = B =~ C
+    0x??    SADD      vres    str   str     A = B + C
+    0x??    SSUBSTR   vres    str   -       A = substr(B, C /* offset */, C + 1 /* count */)
+    0x??    SCMPEQ    vres    str   str     A = B == C
+    0x??    SCMPNE    vres    str   str     A = B != C
+    0x??    SCMPLE    vres    str   str     A = B <= C
+    0x??    SCMPGE    vres    str   str     A = B >= C
+    0x??    SCMPLT    vres    str   str     A = B < C
+    0x??    SCMPGT    vres    str   str     A = B > C
+    0x??    SCMPBEG   vres    str   str     A = B =^ C
+    0x??    SCMPEND   vres    str   str     A = B =$ C
+    0x??    SCMPSET   vres    str   str     A = B in C
+    0x??    SREGMATCH vres    str   regex   A = B =~ C
+    0x??    SREGGROUP vres    num   -       A = regex_group(B /* regex-context offset */)
 
 #### Control Ops
 
     Opcode  Mnemonic  A       D             Description
     --------------------------------------------------------------------------------------------
     0x??    JMP       -       pc            Unconditionally jump to $pc
-    0x??    CONDBR    var     pc            Conditionally jump to $pc if prior variable evaluates to true
+    0x??    CONDBR    var     pc            Conditionally jump to $pc if int(A) evaluates to true
     0x??    EXIT      imm     -             End program with given boolean status code
 
 #### Native Call Ops
