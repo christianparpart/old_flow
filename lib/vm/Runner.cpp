@@ -381,11 +381,10 @@ l_i2s: // A = itoa(B)
     {
         char buf[64];
         if (snprintf(buf, sizeof(buf), "%li", (int64_t) data_[B]) > 0) {
-            stringGarbage_.push_back(buf);
+            data_[A] = (Register) createString(buf);
         } else {
-            stringGarbage_.push_back(std::string());
+            data_[A] = (Register) createString("");
         }
-        data_[A] = (Register) &stringGarbage_.back();
     }
     next;
 
