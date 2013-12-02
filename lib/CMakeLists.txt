@@ -2,9 +2,11 @@ add_definitions(-Wall -Wno-deprecated -DPACKAGE_VERSION="${PACKAGE_VERSION}")
 set(CMAKE_CXX_FLAGS "-std=c++0x -pthread")
 
 add_library(XzeroFlow SHARED
-  FlowProgram.cpp
-  FlowRunner.cpp
-  FlowInstruction.cpp
+  vm/Instruction.cpp
+  vm/Handler.cpp
+  vm/Program.cpp
+  vm/Runner.cpp
+  vm/Runtime.cpp
 )
 
 target_link_libraries(XzeroFlow pthread)

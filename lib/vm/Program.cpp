@@ -1,10 +1,13 @@
-#include <flow/FlowInstruction.h>
-#include <flow/FlowProgram.h>
-#include <flow/FlowRunner.h>
+#include <flow/vm/Program.h>
+#include <flow/vm/Handler.h>
+#include <flow/vm/Instruction.h>
+#include <flow/vm/Runner.h>
 #include <utility>
 #include <vector>
 #include <memory>
 #include <new>
+
+namespace FlowVM {
 
 /* {{{ possible binary file format
  * ----------------------------------------------
@@ -30,34 +33,54 @@
  * {u32, u32, u32}[]    debug source lines segment
  */ // }}}
 
-FlowProgram::FlowProgram() :
-    instructions_(),
+Program::Program() :
     numbers_(),
     strings_(),
     regularExpressions_(),
-    registerCount_(0)
+    handlers_(),
+    runtime_(nullptr)
 {
 }
 
-FlowProgram::FlowProgram(
-        const std::vector<FlowInstruction>& instructions,
+Program::Program(
         const std::vector<uint64_t>& numbers,
         const std::vector<std::string>& strings,
-        const std::vector<std::string>& regularExpressions,
-        size_t numRegisters) :
-    instructions_(instructions),
+        const std::vector<std::string>& regularExpressions) :
     numbers_(numbers),
     strings_(strings),
     regularExpressions_(regularExpressions),
-    registerCount_(numRegisters)
+    handlers_(),
+    runtime_(nullptr)
 {
 }
 
-FlowProgram::~FlowProgram()
+Program::~Program()
 {
+    for (auto& handler: handlers_)
+        delete handler;
 }
 
-std::unique_ptr<FlowRunner> FlowProgram::createRunner()
+Handler* Program::createHandler(const std::string& signature, int registerCount, const std::vector<Instruction>& instructions)
 {
-    return FlowRunner::create(this);
+    Handler* handler = new Handler(this, signature, registerCount, instructions);
+    handlers_.push_back(handler);
+
+    return handler;
 }
+
+Handler* Program::findHandler(const std::string& signature) const
+{
+    for (auto handler: handlers_)
+        if (handler->signature() == signature)
+            return handler;
+
+    return nullptr;
+}
+
+void Program::link(Runtime* runtime)
+{
+    runtime_ = runtime;
+    // TODO: verify that all functions do exist
+}
+
+} // namespace FlowVM

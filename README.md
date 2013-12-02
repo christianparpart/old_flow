@@ -10,11 +10,36 @@
 - code: multi branch instruction (design & impl)
 - code: FlowAST-to-IR compiler to actually get this to life
 
-### Strings
+### Data Types
+
+#### Numbers
+
+Numbers are 64-bit signed. Booleans are represented as numbers.
+
+#### Strings
 
 All strings in flow are immutable. So all string instructions do not disinguish between
 strings from constant table, dynamically allocated strings, or strings as retrieved from
 another virtual machine instruction (such as a native function call).
+
+#### Handler References
+
+...
+
+#### IP Addresses
+
+(IPv4 and IPv6)
+
+IPv4 could be directly represented via the least significant 32-bit from a number.
+
+#### Cidr Network Notations
+
+    10.10.0.0/19
+    3ffe::/16
+
+#### String Arrays
+
+    ["text/plain", "application/octet-stream"]
 
 ### Instruction Stream
 
@@ -95,6 +120,7 @@ Constants are all stored in a constant table, each type of constants in its own 
 
     Opcode  Mnemonic  A       B             Description
     --------------------------------------------------------------------------------------------
+    0x??    NTICKS    vres    -             dumps performance instruction counter into A
     0x??    NDUMPN    vbase   imm           dumps register contents of consecutive registers [vbase, vbase+N]
 
 #### Constant Ops
