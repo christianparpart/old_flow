@@ -1,4 +1,11 @@
+Flow is a domain specific language to provide very flexible custom control flows to
+host applications, such as an HTTP web server to let the operator control the
+way your app the way he things.
+
 ## Flow Virtual Machine
+
+The *Flow Virtual Machine* is the backend to the *Flow Language* that implements
+a bytecode VM interpreter to execute your control flow as fast as possible.
 
 ### TODO
 
@@ -9,6 +16,7 @@
 - code: native handler call
 - code: multi branch instruction (design & impl)
 - code: FlowAST-to-IR compiler to actually get this to life
+- code: direct-threaded VM (token-threaded-to-direct-threaded transform & interpreter)
 
 ### Data Types
 

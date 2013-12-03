@@ -15,7 +15,7 @@ class Handler
 {
 public:
     Handler();
-    Handler(Program* program, const std::string& signature, int registerCount,
+    Handler(Program* program, const std::string& signature,
         const std::vector<Instruction>& instructions);
     Handler(const Handler& handler);
     Handler(Handler&& handler);

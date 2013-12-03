@@ -37,6 +37,10 @@ Program::Program() :
     numbers_(),
     strings_(),
     regularExpressions_(),
+    nativeHandlerSignatures_(),
+    nativeFunctionSignatures_(),
+    nativeHandlers_(),
+    nativeFunctions_(),
     handlers_(),
     runtime_(nullptr)
 {
@@ -45,10 +49,16 @@ Program::Program() :
 Program::Program(
         const std::vector<uint64_t>& numbers,
         const std::vector<std::string>& strings,
-        const std::vector<std::string>& regularExpressions) :
+        const std::vector<std::string>& regularExpressions,
+        const std::vector<std::string>& nativeHandlerSignatures,
+        const std::vector<std::string>& nativeFunctionSignatures) :
     numbers_(numbers),
     strings_(strings),
     regularExpressions_(regularExpressions),
+    nativeHandlerSignatures_(nativeHandlerSignatures),
+    nativeFunctionSignatures_(nativeFunctionSignatures),
+    nativeHandlers_(),
+    nativeFunctions_(),
     handlers_(),
     runtime_(nullptr)
 {
@@ -60,9 +70,9 @@ Program::~Program()
         delete handler;
 }
 
-Handler* Program::createHandler(const std::string& signature, int registerCount, const std::vector<Instruction>& instructions)
+Handler* Program::createHandler(const std::string& signature, const std::vector<Instruction>& instructions)
 {
-    Handler* handler = new Handler(this, signature, registerCount, instructions);
+    Handler* handler = new Handler(this, signature, instructions);
     handlers_.push_back(handler);
 
     return handler;
@@ -77,10 +87,24 @@ Handler* Program::findHandler(const std::string& signature) const
     return nullptr;
 }
 
-void Program::link(Runtime* runtime)
+bool Program::link(Runtime* runtime)
 {
     runtime_ = runtime;
-    // TODO: verify that all functions do exist
+    // map all native functions/handlers to their implementations (report unresolved symbols)
+
+    size_t i = 0;
+    for (const auto& signature: nativeHandlerSignatures_) {
+        // map to nativeHandlers_[i]
+        ++i;
+    }
+
+    i = 0;
+    for (const auto& signature: nativeFunctionSignatures_) {
+        // map to nativeFunctions_[i]
+        ++i;
+    }
+
+    return true;
 }
 
 } // namespace FlowVM

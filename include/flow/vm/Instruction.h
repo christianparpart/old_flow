@@ -2,6 +2,7 @@
 
 #include <sys/param.h> // size_t, odd that it's not part of <stdint.h>.
 #include <stdint.h>
+#include <vector>
 
 namespace FlowVM {
 
@@ -110,6 +111,12 @@ constexpr ImmOperand operandD(Instruction instr) { return static_cast<Operand>((
 
 inline InstructionSig operandSignature(Opcode opc);
 inline const char* mnemonic(Opcode opc);
+
+// --------------------------------------------------------------------------
+// tools
+
+size_t computeRegisterCount(const Instruction* code, size_t size);
+size_t registerMax(Instruction instr);
 
 // {{{ inlines
 inline InstructionSig operandSignature(Opcode opc) {

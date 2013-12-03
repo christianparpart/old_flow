@@ -10,7 +10,127 @@
 #include <cmath>
 #include <memory>
 #include <new>
+
 #include <unistd.h> // getcwd()
+
+namespace FlowVM {
+
+class Signature {
+private:
+    std::string name_;
+    Type returnType_;
+    std::vector<Type> args_;
+
+public:
+    Signature(const std::string& signature);
+    Signature(const Signature& v) :
+        name_(v.name_),
+        returnType_(v.returnType_),
+        args_(v.args_)
+    {}
+
+    const std::string& name() const { return name_; }
+    Type returnType() const { return returnType_; }
+    const std::vector<Type>& args() const { return args_; }
+
+    std::string to_s() const;
+
+    bool operator==(const Signature& v) const { return to_s() == v.to_s(); }
+    bool operator!=(const Signature& v) const { return to_s() != v.to_s(); }
+    bool operator<(const Signature& v) const { return to_s() < v.to_s(); }
+};
+
+Type typeSignature(char ch)
+{
+    switch (ch) {
+        case 'V': return Type::Void;
+        case 'B': return Type::Boolean;
+        case 'I': return Type::Number;
+        case 'S': return Type::String;
+        case 'P': return Type::IPAddress;
+        case 'C': return Type::Cidr;
+        case 'R': return Type::RegExp;
+        case 'H': return Type::Handler;
+        default: return Type::Void; //XXX
+    }
+}
+
+char signatureType(Type t)
+{
+    switch (t) {
+        case Type::Void: return 'V';
+        case Type::Boolean: return 'B';
+        case Type::Number: return 'I';
+        case Type::String: return 'S';
+        case Type::IPAddress: return 'P';
+        case Type::Cidr: return 'C';
+        case Type::RegExp: return 'R';
+        case Type::Handler: return 'H';
+        case Type::StringArray: return 'A';//XXX
+        default: return '?';
+    }
+}
+
+Signature::Signature(const std::string& signature)
+{
+    // signature  ::= NAME [ '(' args ')' returnType
+    // args       ::= type*
+    // returnType ::= type
+    // type       ::= B | I | S | P | C | H
+    enum class State {
+        END         = 0,
+        Name        = 1,
+        ArgsBegin   = 2,
+        Args        = 3,
+        ReturnType  = 4
+    };
+    const char* i = signature.data();
+    const char* e = signature.data() + signature.size();
+    State state = State::Name;
+    while (i != e) {
+        switch (state) {
+            case State::Name:
+                if (*i == '(') {
+                    state = State::ArgsBegin;
+                }
+                ++i;
+                break;
+            case State::ArgsBegin:
+                name_ = std::string(signature.data(), i - signature.data() - 1);
+                state = State::Args;
+                break;
+            case State::Args:
+                if (*i == ')') {
+                    state = State::ReturnType;
+                } else {
+                    args_.push_back(typeSignature(*i));
+                }
+                ++i;
+                break;
+            case State::ReturnType:
+                returnType_ = typeSignature(*i);
+                state = State::END;
+                ++i;
+                break;
+            case State::END:
+                printf("Garbage at end of signature string. %s\n", i);
+                break;
+        }
+    }
+}
+
+std::string Signature::to_s() const
+{
+    std::string result = name_;
+    result += "(";
+    for (Type t: args_)
+        result += signatureType(t);
+    result += ")";
+    result += signatureType(returnType_);
+    return result;
+}
+
+} // namespace FlowVM
 
 static const std::vector<FlowVM::Instruction> code1 = {
     makeInstructionImm(FlowVM::Opcode::EXIT, 1),
@@ -134,17 +254,23 @@ public:
 
 int main()
 {
+    using FlowVM::Signature;
+
+    Signature sig("assert(BSI)B");
+    std::printf("sig: %s\n", sig.to_s().c_str());
+    exit(0);
+
     FlowVM::Program program(
         {123456789, 56789},                 // integer constants
         {"", "Hello", "World", " ", "rl"},  // string constants
-        {"^H.ll. W.rld$"}                   // regex constants
-        //{"print(S)V"}                     // native function signatures
-        //{"assert(BS)B"}                   // native handler signatures
+        {"^H.ll. W.rld$"},                  // regex constants
+        {"assert(BS)B"},                    // native handler signatures
+        {"print(S)V", "getcwd()S"}          // native function signatures
     );
 
-    program.createHandler("test1", 32, code1);
-    program.createHandler("test2", 32, code2);
-    program.createHandler("test3", 32, code3);
+    program.createHandler("test1", code1);
+    program.createHandler("test2", code2);
+    program.createHandler("test3", code3);
 
     FlowTest runtime;
     program.link(&runtime);

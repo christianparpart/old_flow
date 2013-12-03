@@ -8,13 +8,14 @@ Handler::Handler()
 {
 }
 
-Handler::Handler(Program* program, const std::string& signature, int registerCount,
+Handler::Handler(Program* program, const std::string& signature,
         const std::vector<Instruction>& code) :
     program_(program),
     signature_(signature),
-    registerCount_(registerCount),
+    registerCount_(computeRegisterCount(code.data(), code.size())),
     code_(code)
 {
+    printf("Handler(%s) regcount=%zu\n", signature.c_str(), registerCount_);
 }
 
 Handler::Handler(const Handler& v) :
