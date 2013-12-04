@@ -69,8 +69,8 @@ enum Opcode {
     SURLDEC,        // A = urldecode(B)
 
     // invokation
+    // CALL A=id, B=argc, C=argv
     CALL,           // A = functions[B+0] (B+1 ... B+C)
-    VOIDCALL,       // functions[B+0] (B+1 ... B+C)
     HANDLER,        // if (handlers[B+0] (B+1 ... B+C)) EXIT 1
 };
 
@@ -174,6 +174,9 @@ inline InstructionSig operandSignature(Opcode opc) {
         [Opcode::S2I]       = InstructionSig::RR,
         [Opcode::SURLENC]   = InstructionSig::RR,
         [Opcode::SURLDEC]   = InstructionSig::RR,
+        // invokation
+        [Opcode::CALL]      = InstructionSig::RRR,
+        [Opcode::HANDLER]   = InstructionSig::RRR,
     };
     return map[opc];
 };
@@ -233,6 +236,9 @@ inline const char* mnemonic(Opcode opc) {
         [Opcode::S2I]       = "S2I",
         [Opcode::SURLENC]   = "SURLENC",
         [Opcode::SURLDEC]   = "SURLDEC",
+        // invokation
+        [Opcode::CALL]      = "CALL",
+        [Opcode::HANDLER]   = "HANDLER",
     };
     return map[opc];
 }

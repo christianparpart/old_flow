@@ -14,4 +14,4 @@ enum class Type {
 	StringArray = 9,    // Value[]
 };
 
-}
+} // namespace FlowVM

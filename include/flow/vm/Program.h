@@ -20,6 +20,7 @@ public:
         const std::vector<uint64_t>& constNumbers,
         const std::vector<std::string>& constStrings,
         const std::vector<std::string>& regularExpressions,
+        const std::vector<std::pair<std::string, std::string>>& modules,
         const std::vector<std::string>& nativeHandlerSignatures,
         const std::vector<std::string>& nativeFunctionSignatures
     );
@@ -35,14 +36,19 @@ public:
     Handler* createHandler(const std::string& signature, const std::vector<Instruction>& instructions);
     Handler* findHandler(const std::string& signature) const;
 
+    Runtime::Callback* nativeHandler(size_t id) const { return nativeHandlers_[id]; }
+    Runtime::Callback* nativeFunction(size_t id) const { return nativeFunctions_[id]; }
+
     bool link(Runtime* runtime);
 
 private:
     std::vector<uint64_t> numbers_;
     std::vector<std::string> strings_;
-    std::vector<std::string> regularExpressions_; // XXX should be a pre-compiled handled during runtime
+    std::vector<std::string> regularExpressions_;               // XXX to be a pre-compiled handled during runtime
+    std::vector<std::pair<std::string, std::string>> modules_;
     std::vector<std::string> nativeHandlerSignatures_;
     std::vector<std::string> nativeFunctionSignatures_;
+
     std::vector<Runtime::Callback*> nativeHandlers_;
     std::vector<Runtime::Callback*> nativeFunctions_;
     std::vector<Handler*> handlers_;

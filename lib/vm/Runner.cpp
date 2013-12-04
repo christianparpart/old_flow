@@ -33,7 +33,7 @@ void Runner::operator delete (void* p)
     free(p);
 }
 
-std::string* Runner::createString(const std::string& value)
+String* Runner::createString(const std::string& value)
 {
     stringGarbage_.push_back(value);
     return &stringGarbage_.back();
@@ -51,12 +51,10 @@ bool Runner::run()
     #define B  operandB(*pc)
     #define C  operandC(*pc)
     #define D  operandD(*pc)
-    #define next goto *ops[opcode(*++pc)]
 
     #define toString(R) (*(std::string*)data_[R])
     #define toNumber(R) ((Number) data_[R])
 
-    #define INSTR do { ticks++; disassemble(*pc, pc - code.data()); } while (0)
     #define INSTR2(op, x, y) \
         do { \
             char buf[80]; \
@@ -65,6 +63,13 @@ bool Runner::run()
             ticks++; \
             disassemble(*pc, pc - code.data(), buf); \
         } while (0)
+
+    #define instr(name) \
+        l_##name: \
+        disassemble(*pc, pc - code.data()); \
+        ++ticks;
+
+    #define next goto *ops[opcode(*++pc)]
 
     // {{{ jump table
     static const void* ops[] = {
@@ -129,288 +134,295 @@ bool Runner::run()
         [Opcode::SURLDEC] = &&l_surldec,
 
         // invokation
-        [Opcode::VOIDCALL] = &&l_voidcall,
         [Opcode::CALL] = &&l_call,
         [Opcode::HANDLER] = &&l_handler,
     };
     // }}}
 
-    goto *ops[OP];
+    goto *ops[opcode(*pc)];
 
     // {{{ control
-l_exit:
-    INSTR;
-    printf("exiting program. ran %lu instructions\n", ticks);
-    return D != 0;
+    instr (exit) {
+        printf("exiting program. ran %lu instructions\n", ticks);
+        return D != 0;
+    }
 
-l_jmp:
-    INSTR;
-    pc = code.data() + D;
-    goto *ops[OP];
-
-l_condbr:
-    INSTR;
-    if (data_[A] != 0) {
+    instr (jmp) {
         pc = code.data() + D;
         goto *ops[OP];
-    } else {
-        next;
+    }
+
+    instr (condbr) {
+        if (data_[A] != 0) {
+            pc = code.data() + D;
+            goto *ops[OP];
+        } else {
+            next;
+        }
     }
     // }}}
     // {{{ copy
-l_mov:
-    INSTR;
-    data_[A] = data_[B];
-    next;
+    instr (mov) {
+        data_[A] = data_[B];
+        next;
+    }
     // }}}
     // {{{ debug
-l_nticks:
-    INSTR;
-    data_[A] = ticks;
-    next;
-
-l_ndumpn:
-    INSTR;
-    printf("regdump: ");
-    for (int i = 0; i < B; ++i) {
-        if (i) printf(", ");
-        printf("r%d = %li", A + i, (int64_t)data_[A + i]);
+    instr (nticks) {
+        data_[A] = ticks;
+        next;
     }
-    if (B) printf("\n");
-    next;
+
+    instr (ndumpn) {
+        printf("regdump: ");
+        for (int i = 0; i < B; ++i) {
+            if (i) printf(", ");
+            printf("r%d = %li", A + i, (int64_t)data_[A + i]);
+        }
+        if (B) printf("\n");
+        next;
+    }
     // }}}
     // {{{ numerical
-l_imov:
-    INSTR;
-    data_[A] = D;
-    next;
+    instr (imov) {
+        data_[A] = D;
+        next;
+    }
 
-l_nconst:
-    INSTR;
-    data_[A] = program->numbers()[D];
-    next;
+    instr (nconst) {
+        data_[A] = program->numbers()[D];
+        next;
+    }
 
-l_nneg:
-    INSTR;
-    data_[A] = (Register) (-toNumber(B));
-    next;
+    instr (nneg) {
+        data_[A] = (Register) (-toNumber(B));
+        next;
+    }
 
-l_nadd:
-    INSTR2("+", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) + toNumber(C));
-    next;
+    instr (nadd) {
+        data_[A] = static_cast<Register>(toNumber(B) + toNumber(C));
+        next;
+    }
 
-l_nsub:
-    INSTR2("-", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) - toNumber(C));
-    next;
+    instr (nsub) {
+        data_[A] = static_cast<Register>(toNumber(B) - toNumber(C));
+        next;
+    }
 
-l_nmul:
-    INSTR2("*", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) * toNumber(C));
-    next;
+    instr (nmul) {
+        data_[A] = static_cast<Register>(toNumber(B) * toNumber(C));
+        next;
+    }
 
-l_ndiv:
-    INSTR2("/", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) / toNumber(C));
-    next;
+    instr (ndiv) {
+        data_[A] = static_cast<Register>(toNumber(B) / toNumber(C));
+        next;
+    }
 
-l_nrem:
-    INSTR2("%", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) % toNumber(C));
-    next;
+    instr (nrem) {
+        data_[A] = static_cast<Register>(toNumber(B) % toNumber(C));
+        next;
+    }
 
-l_nshl:
-    INSTR2("<<", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) << toNumber(C));
-    next;
+    instr (nshl) {
+        data_[A] = static_cast<Register>(toNumber(B) << toNumber(C));
+        next;
+    }
 
-l_nshr:
-    INSTR2(">>", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) >> toNumber(C));
-    next;
+    instr (nshr) {
+        data_[A] = static_cast<Register>(toNumber(B) >> toNumber(C));
+        next;
+    }
 
-l_npow:
-    INSTR2("**", B, C);
-    data_[A] = static_cast<Register>(powl(toNumber(B), toNumber(C)));
-    next;
+    instr (npow) {
+        data_[A] = static_cast<Register>(powl(toNumber(B), toNumber(C)));
+        next;
+    }
 
-l_nand:
-    INSTR2("&", B, C);
-    data_[A] = data_[B] & data_[C];
-    next;
+    instr (nand) {
+        data_[A] = data_[B] & data_[C];
+        next;
+    }
 
-l_nor:
-    INSTR2("|", B, C);
-    data_[A] = data_[B] | data_[C];
-    next;
+    instr (nor) {
+        data_[A] = data_[B] | data_[C];
+        next;
+    }
 
-l_nxor:
-    INSTR2("^", B, C);
-    data_[A] = data_[B] ^ data_[C];
-    next;
+    instr (nxor) {
+        data_[A] = data_[B] ^ data_[C];
+        next;
+    }
 
-l_ncmpeq:
-    INSTR2("==", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) == toNumber(C));
-    next;
+    instr (ncmpeq) {
+        data_[A] = static_cast<Register>(toNumber(B) == toNumber(C));
+        next;
+    }
 
-l_ncmpne:
-    INSTR2("!=", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) != toNumber(C));
-    next;
+    instr (ncmpne) {
+        data_[A] = static_cast<Register>(toNumber(B) != toNumber(C));
+        next;
+    }
 
-l_ncmple:
-    INSTR2("<=", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) <= toNumber(C));
-    next;
+    instr (ncmple) {
+        data_[A] = static_cast<Register>(toNumber(B) <= toNumber(C));
+        next;
+    }
 
-l_ncmpge:
-    INSTR2(">=", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) >= toNumber(C));
-    next;
+    instr (ncmpge) {
+        data_[A] = static_cast<Register>(toNumber(B) >= toNumber(C));
+        next;
+    }
 
-l_ncmplt:
-    INSTR2("<", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) < toNumber(C));
-    next;
+    instr (ncmplt) {
+        data_[A] = static_cast<Register>(toNumber(B) < toNumber(C));
+        next;
+    }
 
-l_ncmpgt:
-    INSTR2(">", B, C);
-    data_[A] = static_cast<Register>(toNumber(B) > toNumber(C));
-    next;
+    instr (ncmpgt) {
+        data_[A] = static_cast<Register>(toNumber(B) > toNumber(C));
+        next;
+    }
     // }}}
     // {{{ string
-l_sconst: // A = stringConstTable[D]
-    INSTR;
-    data_[A] = (Register) &program->strings()[D];
-    next;
+    instr (sconst) { // A = stringConstTable[D]
+        data_[A] = (Register) &program->strings()[D];
+        next;
+    }
 
-l_sadd: // A = concat(B, C)
-    INSTR;
-    data_[A] = (Register) createString(toString(B) + toString(C));
-    next;
+    instr (sadd) { // A = concat(B, C)
+        data_[A] = (Register) createString(toString(B) + toString(C));
+        next;
+    }
 
-l_ssubstr: // A = substr(B, C /*offset*/, C+1 /*count*/)
-    INSTR;
-    data_[A] = (Register) createString(toString(B).substr(data_[C], data_[C + 1]));
-    next;
+    instr (ssubstr) { // A = substr(B, C /*offset*/, C+1 /*count*/)
+        data_[A] = (Register) createString(toString(B).substr(data_[C], data_[C + 1]));
+        next;
+    }
 
-l_scmpeq:
-    INSTR;
-    data_[A] = toString(B) == toString(C);
-    next;
+    instr (scmpeq) {
+        data_[A] = toString(B) == toString(C);
+        next;
+    }
 
-l_scmpne:
-    INSTR;
-    data_[A] = toString(B) != toString(C);
-    next;
+    instr (scmpne) {
+        data_[A] = toString(B) != toString(C);
+        next;
+    }
 
-l_scmple:
-    INSTR;
-    data_[A] = toString(B) <= toString(C);
-    next;
+    instr (scmple) {
+        data_[A] = toString(B) <= toString(C);
+        next;
+    }
 
-l_scmpge:
-    INSTR;
-    data_[A] = toString(B) >= toString(C);
-    next;
+    instr (scmpge) {
+        data_[A] = toString(B) >= toString(C);
+        next;
+    }
 
-l_scmplt:
-    INSTR;
-    data_[A] = toString(B) < toString(C);
-    next;
+    instr (scmplt) {
+        data_[A] = toString(B) < toString(C);
+        next;
+    }
 
-l_scmpgt:
-    INSTR;
-    data_[A] = toString(B) > toString(C);
-    next;
+    instr (scmpgt) {
+        data_[A] = toString(B) > toString(C);
+        next;
+    }
 
-l_scmpbeg:
-    INSTR;
-    {
+    instr (scmpbeg) {
         const auto& b = toString(B);
         const auto& c = toString(C);
         data_[A] = b.size() >= c.size() && strncmp(b.c_str(), c.c_str(), c.size()) == 0;
+        next;
     }
-    next;
 
-l_scmpend:
-    INSTR;
-    {
+    instr (scmpend) {
         const auto& b = toString(B);
         const auto& c = toString(C);
         data_[A] = b.size() >= c.size() && strcmp(b.c_str() + c.size() - c.size(), c.c_str()) == 0;
+        next;
     }
-    next;
 
-l_scontains:
-    INSTR;
-    data_[A] = toString(B).find(toString(C)) != std::string::npos;
-    next;
+    instr (scontains) {
+        data_[A] = toString(B).find(toString(C)) != String::npos;
+        next;
+    }
 
-l_slen:
-    INSTR;
-    data_[A] = toString(B).size();
-    next;
+    instr (slen) {
+        data_[A] = toString(B).size();
+        next;
+    }
 
-l_sprint:
-    INSTR;
-    printf("%s\n", toString(A).c_str());
-    next;
+    instr (sprint) {
+        printf("%s\n", toString(A).c_str());
+        next;
+    }
     // }}}
     // {{{ regex
-l_sregmatch: // A = B =~ C
-    INSTR;
-    // TODO
-    next;
+    instr (sregmatch) { // A = B =~ C
+        // TODO
+        next;
+    }
 
-l_sreggroup: // A = regex.match(B)
-    INSTR;
-    // TODO
-    next;
+    instr (sreggroup) { // A = regex.match(B)
+        // TODO
+        next;
+    }
     // }}}
     // {{{ conversion
-l_s2i: // A = atoi(B)
-    INSTR;
-    data_[A] = strtoll(toString(B).c_str(), nullptr, 10);
-    next;
+    instr (s2i) { // A = atoi(B)
+        data_[A] = strtoll(toString(B).c_str(), nullptr, 10);
+        next;
+    }
 
-l_i2s: // A = itoa(B)
-    INSTR;
-    {
+    instr (i2s) { // A = itoa(B)
         char buf[64];
         if (snprintf(buf, sizeof(buf), "%li", (int64_t) data_[B]) > 0) {
             data_[A] = (Register) createString(buf);
         } else {
             data_[A] = (Register) createString("");
         }
+        next;
     }
-    next;
 
-l_surlenc: // A = urlencode(B)
-    INSTR;
-    // TODO
-    next;
+    instr (surlenc) { // A = urlencode(B)
+        // TODO
+        next;
+    }
 
-l_surldec: // B = urldecode(B)
-    INSTR;
-    // TODO
-    next;
+    instr (surldec) { // B = urldecode(B)
+        // TODO
+        next;
+    }
     // }}}
     // {{{ invokation
-l_voidcall:
-    INSTR;
-    next;
+    instr (call) { // A = call(B[0], B.slice(1))
+        Register id = toNumber(A);
+        int argc = toNumber(B);
+        Value* argv = &data_[C];
 
-l_call:
-    INSTR;
-    next;
+        Runtime::Callback* cb = handler_->program()->nativeFunction(id);
+        cb->invoke(argc, argv, this);
 
-l_handler:
-    INSTR;
-    next;
+        next;
+    }
 
+    instr (handler) {
+        Register id = toNumber(A);
+        int argc = toNumber(B);
+        Value* argv = &data_[C];
+
+        Runtime::Callback* cb = handler_->program()->nativeHandler(id);
+
+        cb->invoke(argc, argv, this);
+
+        if (argv[0] != 0) {
+            return true;
+        }
+
+        next;
+    }
     // }}}
 }
 

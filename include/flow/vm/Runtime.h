@@ -1,6 +1,7 @@
 #pragma once
 
 #include <flow/vm/Type.h>
+#include <flow/vm/Signature.h>
 #include <string>
 #include <vector>
 #include <functional>
@@ -8,6 +9,7 @@
 namespace FlowVM {
 
 typedef uint64_t Value;
+typedef std::string String;
 
 class Runner;
 
@@ -19,59 +21,52 @@ public:
     struct Callback { // {{{
         Runtime* runtime_;
         bool isHandler_;
-        std::string name_;
         NativeCallback function_;
-        std::vector<Type> signature_;
+        Signature signature_;
 
         bool isHandler() const { return isHandler_; }
-        const std::string name() const { return name_; }
-        const std::vector<Type>& signature() const { return signature_; }
+        const std::string name() const { return signature_.name(); }
+        const Signature& signature() const { return signature_; }
 
         // constructs a handler callback
         Callback(Runtime* runtime, const std::string& _name) :
             runtime_(runtime),
             isHandler_(true),
-            name_(_name),
             function_(),
             signature_()
         {
-            signature_.push_back(Type::Boolean);
+            signature_.setName(_name);
+            signature_.setReturnType(Type::Boolean);
         }
 
         // constructs a function callback
         Callback(Runtime* runtime, const std::string& _name, Type _returnType) :
             runtime_(runtime),
             isHandler_(false),
-            name_(_name),
             function_(),
             signature_()
         {
-            signature_.push_back(_returnType);
+            signature_.setName(_name);
+            signature_.setReturnType(_returnType);
         }
 
         Callback(const std::string& _name, const NativeCallback& _builtin, Type _returnType) :
             isHandler_(false),
-            name_(_name),
             function_(_builtin),
             signature_()
         {
-            signature_.push_back(_returnType);
+            signature_.setName(_name);
+            signature_.setReturnType(_returnType);
         }
 
         void invoke(int argc, Value* argv, Runner* cx) const {
             function_(argc, argv, cx);
         }
 
-        template<typename Arg1>
-        Callback& signature(Arg1 a1) {
-            signature_.push_back(a1);
-            return *this;
-        }
-
         template<typename Arg1, typename... Args>
         Callback& signature(Arg1 a1, Args... more) {
-            signature_.push_back(a1);
-            return signature(more...);
+            signature_.setArgs({a1, more...});
+            return *this;
         }
 
         Callback& operator()(const NativeCallback& cb) {
@@ -101,19 +96,19 @@ public:
         }
     }; // }}}
 public:
-	virtual bool import(const std::string& name, const std::string& path) = 0;
+    virtual bool import(const std::string& name, const std::string& path) = 0;
 
-	bool contains(const std::string& name) const;
-	int find(const std::string& name) const;
-	const std::vector<Callback>& builtins() const { return builtins_; }
+    bool contains(const std::string& signature) const;
+    Callback* find(const std::string& signature);
+    const std::vector<Callback>& builtins() const { return builtins_; }
 
-	Callback& registerHandler(const std::string& name);
-	Callback& registerFunction(const std::string& name, Type returnType);
+    Callback& registerHandler(const std::string& name);
+    Callback& registerFunction(const std::string& name, Type returnType);
 
-//	template<typename... Args>
-//	Callback& registerFunction(const std::string& name, const NativeCallback& fn, Type returnType, Args... args);
+//  template<typename... Args>
+//  Callback& registerFunction(const std::string& name, const NativeCallback& fn, Type returnType, Args... args);
 
-	void invoke(int id, int argc, Value* argv, Runner* cx);
+    void invoke(int id, int argc, Value* argv, Runner* cx);
 
 private:
     std::vector<Callback> builtins_;

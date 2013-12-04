@@ -2,6 +2,7 @@
 
 #include <flow/vm/Handler.h>
 #include <flow/vm/Instruction.h>
+#include <flow/vm/Runtime.h>        // String
 #include <utility>
 #include <list>
 #include <memory>
@@ -40,7 +41,7 @@ public:
     void* userdata() const { return userdata_; }
     void setUserData(void* p) { userdata_ = p; }
 
-    std::string* createString(const std::string& value);
+    String* createString(const std::string& value);
 
 private:
     explicit Runner(Handler* handler);

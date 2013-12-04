@@ -1,7 +1,8 @@
 #include <flow/vm/Program.h>
 #include <flow/vm/Runner.h>
-#include <flow/vm/Instruction.h>
 #include <flow/vm/Runtime.h>
+#include <flow/vm/Signature.h>
+#include <flow/vm/Instruction.h>
 #include <initializer_list>
 #include <vector>
 #include <utility>
@@ -12,125 +13,6 @@
 #include <new>
 
 #include <unistd.h> // getcwd()
-
-namespace FlowVM {
-
-class Signature {
-private:
-    std::string name_;
-    Type returnType_;
-    std::vector<Type> args_;
-
-public:
-    Signature(const std::string& signature);
-    Signature(const Signature& v) :
-        name_(v.name_),
-        returnType_(v.returnType_),
-        args_(v.args_)
-    {}
-
-    const std::string& name() const { return name_; }
-    Type returnType() const { return returnType_; }
-    const std::vector<Type>& args() const { return args_; }
-
-    std::string to_s() const;
-
-    bool operator==(const Signature& v) const { return to_s() == v.to_s(); }
-    bool operator!=(const Signature& v) const { return to_s() != v.to_s(); }
-    bool operator<(const Signature& v) const { return to_s() < v.to_s(); }
-};
-
-Type typeSignature(char ch)
-{
-    switch (ch) {
-        case 'V': return Type::Void;
-        case 'B': return Type::Boolean;
-        case 'I': return Type::Number;
-        case 'S': return Type::String;
-        case 'P': return Type::IPAddress;
-        case 'C': return Type::Cidr;
-        case 'R': return Type::RegExp;
-        case 'H': return Type::Handler;
-        default: return Type::Void; //XXX
-    }
-}
-
-char signatureType(Type t)
-{
-    switch (t) {
-        case Type::Void: return 'V';
-        case Type::Boolean: return 'B';
-        case Type::Number: return 'I';
-        case Type::String: return 'S';
-        case Type::IPAddress: return 'P';
-        case Type::Cidr: return 'C';
-        case Type::RegExp: return 'R';
-        case Type::Handler: return 'H';
-        case Type::StringArray: return 'A';//XXX
-        default: return '?';
-    }
-}
-
-Signature::Signature(const std::string& signature)
-{
-    // signature  ::= NAME [ '(' args ')' returnType
-    // args       ::= type*
-    // returnType ::= type
-    // type       ::= B | I | S | P | C | H
-    enum class State {
-        END         = 0,
-        Name        = 1,
-        ArgsBegin   = 2,
-        Args        = 3,
-        ReturnType  = 4
-    };
-    const char* i = signature.data();
-    const char* e = signature.data() + signature.size();
-    State state = State::Name;
-    while (i != e) {
-        switch (state) {
-            case State::Name:
-                if (*i == '(') {
-                    state = State::ArgsBegin;
-                }
-                ++i;
-                break;
-            case State::ArgsBegin:
-                name_ = std::string(signature.data(), i - signature.data() - 1);
-                state = State::Args;
-                break;
-            case State::Args:
-                if (*i == ')') {
-                    state = State::ReturnType;
-                } else {
-                    args_.push_back(typeSignature(*i));
-                }
-                ++i;
-                break;
-            case State::ReturnType:
-                returnType_ = typeSignature(*i);
-                state = State::END;
-                ++i;
-                break;
-            case State::END:
-                printf("Garbage at end of signature string. %s\n", i);
-                break;
-        }
-    }
-}
-
-std::string Signature::to_s() const
-{
-    std::string result = name_;
-    result += "(";
-    for (Type t: args_)
-        result += signatureType(t);
-    result += ")";
-    result += signatureType(returnType_);
-    return result;
-}
-
-} // namespace FlowVM
 
 static const std::vector<FlowVM::Instruction> code1 = {
     makeInstructionImm(FlowVM::Opcode::EXIT, 1),
@@ -202,6 +84,60 @@ static const std::vector<FlowVM::Instruction> code3 = {
     makeInstructionImm(FlowVM::Opcode::EXIT, 1),
 };
 
+/*
+ * IMOV r1, 1       ; argc
+ * IMOV r2, 0       ; argv[0] result; (initialization not needed)
+ * IMOV r0, 1       ; function ID of getcwd()I
+ * CALL r0, r1, r2  ; fn#, argc, argv
+ *
+ *
+ * ; r0=fid, r1=argc, r2=argv[0], r3=argv[1],
+ *
+ * MOV  r3, r2      ; argv[1]: result string from call above
+ * IMOV r1, 2       ; argc
+ * IMOV r0, 0       ; function ID of print(S)I
+ * CALL r0, r1, r2  ; fn#, argc, argv
+ *
+ * EXIT 1
+ */
+static const std::vector<FlowVM::Instruction> code4 = {
+    // /*r2*/ tmp = getcwd()
+    makeInstructionImm(FlowVM::Opcode::IMOV, 1, 1), // argc
+    makeInstructionImm(FlowVM::Opcode::IMOV, 2, 0), // argv[0]
+    makeInstructionImm(FlowVM::Opcode::IMOV, 0, 1), // fid
+    makeInstruction(FlowVM::Opcode::CALL, 0, 1, 2),
+
+    // print(tmp)
+    makeInstruction(FlowVM::Opcode::MOV, 3, 2),     // r3 = tmp
+    makeInstructionImm(FlowVM::Opcode::IMOV, 1, 2), // argc
+    makeInstructionImm(FlowVM::Opcode::IMOV, 0, 0), // fid
+    makeInstruction(FlowVM::Opcode::CALL, 0, 1, 2),
+
+    makeInstructionImm(FlowVM::Opcode::EXIT, 1),
+};
+
+/*
+ * expr = true;
+ * assert(expr, "Hello, World");
+ * exit(0);
+ *
+ * IMOV r0, 0           ; handler ID
+ * IMOV r1, 3           ; argc = 3
+ * IMOV r3, 1           ; argv[1] = true ; expr result
+ * SCONST r4, 1         ; argv[2] = sconst[1] // "Hello"
+ * CALL r0, r1, r2
+ * EXIT 0
+ */
+static const std::vector<FlowVM::Instruction> code5 = {
+    makeInstructionImm(FlowVM::Opcode::IMOV, 0, 0),
+    makeInstructionImm(FlowVM::Opcode::IMOV, 1, 3),
+    makeInstructionImm(FlowVM::Opcode::IMOV, 3, 0), // expr result
+    makeInstructionImm(FlowVM::Opcode::SCONST, 4, 1),
+    makeInstruction(FlowVM::Opcode::HANDLER, 0, 1, 2),
+
+    makeInstructionImm(FlowVM::Opcode::EXIT, 0),
+};
+
 class FlowTest : public FlowVM::Runtime {
 public:
     FlowTest()
@@ -214,13 +150,16 @@ public:
             .bind(&FlowTest::_getcwd);
 
         registerFunction("print", FlowVM::Type::Number)
-            .signature(FlowVM::Type::StringArray)
+            .signature(FlowVM::Type::String)
             .bind(&FlowTest::_print);
     }
 
     virtual bool import(const std::string& name, const std::string& path)
     {
-        return false;
+        printf("FlowTest: about to import plugin '%s' from path '%s' (no-op)\n",
+                name.c_str(), path.c_str());
+
+        return true;
     }
 
     // signature:
@@ -228,24 +167,19 @@ public:
     //      bool assert(bool exprResult, string exprSourceCode);
     void _assert(int argc, FlowVM::Value* argv, FlowVM::Runner* cx)
     {
-        printf("_assert!\n");
-        argv[0] = false;
-//        printf("assertion: %s   ; %s\n",
-//            args[1].toBool() ? "true" : "false",
-//            args[1].toString());
-
-//        args[0] = args[1].toBool();
+        printf("assertion: %-6s; %s\n",
+            argv[1] ? "true" : "false",
+            ((FlowVM::String*)argv[2])->c_str());
+        argv[0] = argv[1];
     }
 
     void _print(int argc, FlowVM::Value* argv, FlowVM::Runner* cx)
     {
-        printf("_print!\n");
+        printf("%s\n", ((FlowVM::String*)argv[1])->c_str());
     }
 
     void _getcwd(int argc, FlowVM::Value* argv, FlowVM::Runner* cx)
     {
-        printf("_getcwd!\n");
-
         char cwd[PATH_MAX];
         getcwd(cwd, sizeof(cwd));
         argv[0] = (FlowVM::Value) cx->createString(cwd);
@@ -254,28 +188,26 @@ public:
 
 int main()
 {
-    using FlowVM::Signature;
-
-    Signature sig("assert(BSI)B");
-    std::printf("sig: %s\n", sig.to_s().c_str());
-    exit(0);
-
     FlowVM::Program program(
         {123456789, 56789},                 // integer constants
         {"", "Hello", "World", " ", "rl"},  // string constants
         {"^H.ll. W.rld$"},                  // regex constants
+        {{"fnord", ""},                     // external modules
+         {"foo", "/usr/libexec"}},
         {"assert(BS)B"},                    // native handler signatures
-        {"print(S)V", "getcwd()S"}          // native function signatures
+        {"print(S)I", "getcwd()S"}          // native function signatures
     );
 
-    program.createHandler("test1", code1);
-    program.createHandler("test2", code2);
-    program.createHandler("test3", code3);
+    program.createHandler("test1", code1); // simple
+    program.createHandler("test2", code2); // number math iteration test
+    program.createHandler("test3", code3); // string test
+    program.createHandler("test4", code4); // function call test
+    program.createHandler("test5", code5); // handler call test
 
     FlowTest runtime;
     program.link(&runtime);
 
-    if (FlowVM::Handler* handler = program.findHandler("test3")) {
+    if (FlowVM::Handler* handler = program.findHandler("test5")) {
         printf("Disassembling %s ...\n", handler->signature().c_str());
         handler->disassemble();
 

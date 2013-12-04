@@ -7,6 +7,7 @@ add_library(XzeroFlow SHARED
   vm/Program.cpp
   vm/Runner.cpp
   vm/Runtime.cpp
+  vm/Signature.cpp
 )
 
 target_link_libraries(XzeroFlow pthread)
