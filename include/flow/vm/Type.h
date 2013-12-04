@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <cstdint>
+
 namespace FlowVM {
 
 enum class Type {
@@ -11,7 +14,11 @@ enum class Type {
 	Cidr = 6,           // Cidr*
 	RegExp = 7,         // RegExp*
 	Handler = 8,        // bool (*native_handler)(FlowContext*);
-	StringArray = 9,    // Value[]
+    Array = 9,          // array<V>
+    AssocArray = 10,    // assocarray<K, V>
 };
+
+typedef std::string String;
+typedef int64_t Number;
 
 } // namespace FlowVM

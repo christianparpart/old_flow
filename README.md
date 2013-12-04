@@ -217,27 +217,35 @@ Constants are all stored in a constant table, each type of constants in its own 
 
     Opcode  Mnemonic  A       B     C       Description
     --------------------------------------------------------------------------------------------
-    0x??    FUNCTION  -       vbase imm     Invoke native func, returns an integer
-    0x??    FUNCTIONI vres    vbase imm     Invoke native func, returns an integer
-    0x??    FUNCTIONS vres    vbase imm     Invoke native func; returns a string
-    0x??    HANDLER   -       vbase imm     Invoke native handler (can cause program to exit)
-
-Native functions and handlers must have their parameters stored in consecutive registers directly after
-the function's ID.
-
-The consecuritve register array layout can be described as follows:
-
-      vbase+0     vbase+1   ...   vbase+imm
-    +-----------+---------+-----+-----------+
-    | NativeID  | arg1    | ... | argN      |
-    +-----------+---------+-----+-----------+
+    0x??    CALL      id      argc  argv    Invoke native func with identifier A.
+                                            Return value is stored in argv+0.
+                                            Arguments are stored in argv+N with 0 < N < argc.
+    0x??    HANDLER   id      argc  argv    Invoke native handler (can cause program to exit).
+                                            Return code must be a boolean in argv+0,
+                                            and parameters are stored as for CALL.
 
 ##### Examples:
 
 We assume that the native function ID is stored in register `0x11`.
 
-- `0x001100??` - native call, returns nothing and takes no args
-- `0x001122??` - native call, returns a result to register `0x22`, takes no args
-- `0x011122??` - native call, returns a result, takes one arg into register `0x33`
-- `0x041122??` - native call, returns a result, takes 4 args starting from register `0x12` to `0x15` including.
+- `0x000011??` - native call, returns nothing and takes no args
+- `0x220111??` - native call, returns a result to register `0x22`, takes no args
+- `0x220211??` - native call, returns a result, takes one arg into register `0x23`
+- `0x220511??` - native call, returns a result, takes 4 args starting from register `0x23` to `0x26` including.
+
+##### Parameter Passing Conventions
+
+Just like a C program, a consecutive array of `argv[]`'s is created, but where
+`argv[0]` contains the result value (if any) and `argv[1]` to `argv[argc - 1]` will
+contain the parameter values.
+
+- Integers: register contents cast to a 64bit signed integer
+- Boolean: as integer, false is 0, true is != 0
+- String: register contents is cast to a VM internal `String` pointer.
+- IPAddress: register contents is cast to a VM internal `IPAddress` pointer.
+- Cidr: register contents is cast to a VM internal `Cidr` pointer.
+- RegExp: register contents is cast to a VM internal `RegExp` pointer.
+- Handler: register contents is an offset into the programs handler table.
+- Array of V: conecutive registers as passed in `argv` directly represent the elements of the given array.
+- Associative Array of (K, V): Keys are stored in `argv[N+0]` and values in `argv[N+1]`.
 

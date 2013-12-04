@@ -138,7 +138,24 @@ static const std::vector<FlowVM::Instruction> code5 = {
     makeInstructionImm(FlowVM::Opcode::EXIT, 0),
 };
 
-class FlowTest : public FlowVM::Runtime {
+/* handler ref test
+ *
+ */
+static const std::vector<FlowVM::Instruction> code6 = {
+    // print_handlers([test1, test2, test4]);
+    makeInstructionImm(FlowVM::Opcode::IMOV, 0, 2), // functionID = 2
+    makeInstructionImm(FlowVM::Opcode::IMOV, 1, 4), // argc = 4
+  //makeInstructionImm(FlowVM::Opcode::IMOV, 2, 0), // argv[0] = 0
+    makeInstructionImm(FlowVM::Opcode::IMOV, 3, 0), // argv[1] = handler #0
+    makeInstructionImm(FlowVM::Opcode::IMOV, 4, 1), // argv[2] = handler #1
+    makeInstructionImm(FlowVM::Opcode::IMOV, 5, 3), // argv[3] = handler #3
+
+    makeInstruction(FlowVM::Opcode::CALL, 0, 1, 2),
+
+    makeInstructionImm(FlowVM::Opcode::EXIT, 0),
+};
+
+class FlowTest : public FlowVM::Runtime { // {{{
 public:
     FlowTest()
     {
@@ -152,6 +169,10 @@ public:
         registerFunction("print", FlowVM::Type::Number)
             .signature(FlowVM::Type::String)
             .bind(&FlowTest::_print);
+
+        registerFunction("printHandlers", FlowVM::Type::Void)
+            .signature(FlowVM::Type::Array, FlowVM::Type::String)
+            .bind(&FlowTest::_printHandlers);
     }
 
     virtual bool import(const std::string& name, const std::string& path)
@@ -162,15 +183,22 @@ public:
         return true;
     }
 
+    // void printHandlers(HandlerRef[] handlers)
+    void _printHandlers(int argc, FlowVM::Value* argv, FlowVM::Runner* cx)
+    {
+        for (int i = 1; i < argc; ++i) {
+            FlowVM::Handler* handler = cx->program()->handler(argv[i]);
+            printf("handler[%d] = %s\n", i, handler->name().c_str());
+        }
+    }
+
     // signature:
     //     "assert(BS)B"
     //      bool assert(bool exprResult, string exprSourceCode);
     void _assert(int argc, FlowVM::Value* argv, FlowVM::Runner* cx)
     {
-        printf("assertion: %-6s; %s\n",
-            argv[1] ? "true" : "false",
-            ((FlowVM::String*)argv[2])->c_str());
-        argv[0] = argv[1];
+        printf("assertion: %-6s; %s\n", argv[1] ? "true" : "false", ((FlowVM::String*)argv[2])->c_str());
+        argv[0] = argv[1] == 0;
     }
 
     void _print(int argc, FlowVM::Value* argv, FlowVM::Runner* cx)
@@ -184,7 +212,7 @@ public:
         getcwd(cwd, sizeof(cwd));
         argv[0] = (FlowVM::Value) cx->createString(cwd);
     }
-};
+}; // }}}
 
 int main()
 {
@@ -195,7 +223,8 @@ int main()
         {{"fnord", ""},                     // external modules
          {"foo", "/usr/libexec"}},
         {"assert(BS)B"},                    // native handler signatures
-        {"print(S)I", "getcwd()S"}          // native function signatures
+        {"print(S)I", "getcwd()S",          // native function signatures
+         "printHandlers([S)V"}
     );
 
     program.createHandler("test1", code1); // simple
@@ -203,15 +232,16 @@ int main()
     program.createHandler("test3", code3); // string test
     program.createHandler("test4", code4); // function call test
     program.createHandler("test5", code5); // handler call test
+    program.createHandler("test6", code6); // handler ref + array call args test
 
     FlowTest runtime;
-    program.link(&runtime);
+    if (!program.link(&runtime))
+        return 1;
 
-    if (FlowVM::Handler* handler = program.findHandler("test5")) {
-        printf("Disassembling %s ...\n", handler->signature().c_str());
-        handler->disassemble();
+    program.dump();
 
-        printf("\nRunning %s ...\n", handler->signature().c_str());
+    if (FlowVM::Handler* handler = program.findHandler("test6")) {
+        printf("Running %s ...\n", handler->name().c_str());
         std::unique_ptr<FlowVM::Runner> flow = handler->createRunner();
         flow->run();
     }

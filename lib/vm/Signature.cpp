@@ -18,8 +18,11 @@ Signature::Signature(const std::string& signature) :
 {
     // signature  ::= NAME [ '(' args ')' returnType
     // args       ::= type*
-    // returnType ::= type | 'V'
-    // type       ::= 'B' | 'I' | 'S' | 'P' | 'C' | 'R' | 'H'
+    // returnType ::= primitive | 'V'
+    // type       ::= array | assocArray | primitive
+    // array      ::= '[' primitive
+    // assocArray ::= '>' primitive primitive
+    // primitive  ::= 'B' | 'I' | 'S' | 'P' | 'C' | 'R' | 'H'
 
     enum class State {
         END         = 0,
@@ -92,6 +95,8 @@ Type typeSignature(char ch)
         case 'C': return Type::Cidr;
         case 'R': return Type::RegExp;
         case 'H': return Type::Handler;
+        case '[': return Type::Array;
+        case '>': return Type::AssocArray;
         default: return Type::Void; //XXX
     }
 }
@@ -107,7 +112,8 @@ char signatureType(Type t)
         case Type::Cidr: return 'C';
         case Type::RegExp: return 'R';
         case Type::Handler: return 'H';
-        case Type::StringArray: return 'A';//XXX
+        case Type::Array: return '[';
+        case Type::AssocArray: return '>';
         default: return '?';
     }
 }

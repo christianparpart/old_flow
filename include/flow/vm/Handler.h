@@ -15,7 +15,7 @@ class Handler
 {
 public:
     Handler();
-    Handler(Program* program, const std::string& signature,
+    Handler(Program* program, const std::string& name,
         const std::vector<Instruction>& instructions);
     Handler(const Handler& handler);
     Handler(Handler&& handler);
@@ -23,8 +23,8 @@ public:
 
     Program* program() const { return program_; }
 
-    const std::string& signature() const { return signature_; }
-    void setSignature(const std::string& sig) { signature_ = sig; }
+    const std::string& name() const { return name_; }
+    void setName(const std::string& name) { name_ = name; }
 
     size_t registerCount() const { return registerCount_; }
     void setRegisterCount(size_t v) { registerCount_ = v; }
@@ -39,7 +39,7 @@ public:
 
 private:
     Program* program_;
-    std::string signature_;
+    std::string name_;
     size_t registerCount_;
     std::vector<Instruction> code_;
 };

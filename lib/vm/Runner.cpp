@@ -22,6 +22,7 @@ std::unique_ptr<Runner> Runner::create(Handler* handler)
 
 Runner::Runner(Handler* handler) :
     handler_(handler),
+    program_(handler->program()),
     userdata_(nullptr),
     stringGarbage_()
 {
@@ -52,17 +53,8 @@ bool Runner::run()
     #define C  operandC(*pc)
     #define D  operandD(*pc)
 
-    #define toString(R) (*(std::string*)data_[R])
-    #define toNumber(R) ((Number) data_[R])
-
-    #define INSTR2(op, x, y) \
-        do { \
-            char buf[80]; \
-            snprintf(buf, sizeof(buf), "%li %s %li", \
-                    data_[x], op, data_[y]); \
-            ticks++; \
-            disassemble(*pc, pc - code.data(), buf); \
-        } while (0)
+    #define toString(R) (*(String*) data_[R])
+    #define toNumber(R)   ((Number) data_[R])
 
     #define instr(name) \
         l_##name: \

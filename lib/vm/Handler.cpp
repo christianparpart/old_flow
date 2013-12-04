@@ -8,19 +8,18 @@ Handler::Handler()
 {
 }
 
-Handler::Handler(Program* program, const std::string& signature,
+Handler::Handler(Program* program, const std::string& name,
         const std::vector<Instruction>& code) :
     program_(program),
-    signature_(signature),
+    name_(name),
     registerCount_(computeRegisterCount(code.data(), code.size())),
     code_(code)
 {
-    printf("Handler(%s) regcount=%zu\n", signature.c_str(), registerCount_);
 }
 
 Handler::Handler(const Handler& v) :
     program_(v.program_),
-    signature_(v.signature_),
+    name_(v.name_),
     registerCount_(v.registerCount_),
     code_(v.code_)
 {
@@ -28,7 +27,7 @@ Handler::Handler(const Handler& v) :
 
 Handler::Handler(Handler&& v) :
     program_(std::move(v.program_)),
-    signature_(std::move(v.signature_)),
+    name_(std::move(v.name_)),
     registerCount_(std::move(v.registerCount_)),
     code_(std::move(v.code_))
 {

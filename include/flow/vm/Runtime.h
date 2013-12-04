@@ -105,9 +105,6 @@ public:
     Callback& registerHandler(const std::string& name);
     Callback& registerFunction(const std::string& name, Type returnType);
 
-//  template<typename... Args>
-//  Callback& registerFunction(const std::string& name, const NativeCallback& fn, Type returnType, Args... args);
-
     void invoke(int id, int argc, Value* argv, Runner* cx);
 
 private:
