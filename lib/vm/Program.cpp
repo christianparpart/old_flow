@@ -73,6 +73,13 @@ Program::~Program()
         delete handler;
 }
 
+Handler* Program::createHandler(const std::string& name)
+{
+    Handler* handler = new Handler(this, name, {});
+    handlers_.push_back(handler);
+    return handler;
+}
+
 Handler* Program::createHandler(const std::string& name, const std::vector<Instruction>& instructions)
 {
     Handler* handler = new Handler(this, name, instructions);
@@ -97,40 +104,46 @@ void Program::dump()
     printf("\n; Modules\n");
     for (size_t i = 0, e = modules_.size(); i != e; ++i) {
         if (modules_[i].second.empty())
-            printf("  \"%s\"\n", modules_[i].first.c_str());
+            printf(".module '%s'\n", modules_[i].first.c_str());
         else
-            printf("  \"%s\" from \"%s\"\n", modules_[i].first.c_str(), modules_[i].second.c_str());
+            printf(".module '%s' from '%s'\n", modules_[i].first.c_str(), modules_[i].second.c_str());
     }
 
     printf("\n; External Functions\n");
     for (size_t i = 0, e = nativeFunctionSignatures_.size(); i != e; ++i) {
         if (nativeFunctions_[i])
-            printf("  #%-4zu = %-20s ; linked to %p\n", i, nativeFunctionSignatures_[i].c_str(), nativeFunctions_[i]);
+            printf(".extern function %3zu = %-20s ; linked to %p\n", i, nativeFunctionSignatures_[i].c_str(), nativeFunctions_[i]);
         else
-            printf("  #%-4zu = %-20s\n", i, nativeFunctionSignatures_[i].c_str());
+            printf(".extern function %3zu = %-20s\n", i, nativeFunctionSignatures_[i].c_str());
     }
 
     printf("\n; External Handlers\n");
     for (size_t i = 0, e = nativeHandlerSignatures_.size(); i != e; ++i) {
         if (nativeHandlers_[i])
-            printf("  #%-4zu = %-20s ; linked to %p\n", i, nativeHandlerSignatures_[i].c_str(), nativeHandlers_[i]);
+            printf(".extern handler %4zu = %-20s ; linked to %p\n", i, nativeHandlerSignatures_[i].c_str(), nativeHandlers_[i]);
         else
-            printf("  #%-4zu = %-20s\n", i, nativeHandlerSignatures_[i].c_str());
+            printf(".extern handler %4zu = %-20s\n", i, nativeHandlerSignatures_[i].c_str());
     }
 
     printf("\n; Integer Constants\n");
     for (size_t i = 0, e = numbers_.size(); i != e; ++i) {
-        printf("  #%-4zu = %li\n", i, (Number) numbers_[i]);
+        printf(".const integer %5zu = %li\n", i, (Number) numbers_[i]);
     }
 
     printf("\n; String Constants\n");
     for (size_t i = 0, e = strings_.size(); i != e; ++i) {
-        printf("  #%-4zu = \"%s\"\n", i, strings_[i].c_str());
+        printf(".const string %6zu = '%s'\n", i, strings_[i].c_str());
+    }
+
+    printf("\n; Regular Expression Constants\n");
+    for (size_t i = 0, e = regularExpressions_.size(); i != e; ++i) {
+        printf(".const regex %7zu = /%s/\n", i, regularExpressions_[i].c_str());
     }
 
     for (size_t i = 0, e = handlers_.size(); i != e; ++i) {
         Handler* handler = handlers_[i];
-        printf("\n; Handler #%zu %s (%zu registers)\n", i, handler->name().c_str(), handler->registerCount());
+        printf("\n.handler %-15s ; #%zu (%zu registers, %zu instructions)\n",
+                handler->name().c_str(), i, handler->registerCount(), handler->code().size());
         handler->disassemble();
     }
 

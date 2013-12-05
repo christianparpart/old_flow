@@ -34,9 +34,11 @@ public:
     inline const std::vector<std::string>& regularExpressions() const { return regularExpressions_; }
     inline const std::vector<Handler*> handlers() const { return handlers_; }
 
+    Handler* createHandler(const std::string& name);
     Handler* createHandler(const std::string& name, const std::vector<Instruction>& instructions);
     Handler* findHandler(const std::string& name) const;
     Handler* handler(size_t index) const { return handlers_[index]; }
+    int handlerIndex(const std::string& name) const;
 
     Runtime::Callback* nativeHandler(size_t id) const { return nativeHandlers_[id]; }
     Runtime::Callback* nativeFunction(size_t id) const { return nativeFunctions_[id]; }

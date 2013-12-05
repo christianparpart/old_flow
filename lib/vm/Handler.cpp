@@ -37,9 +37,28 @@ Handler::~Handler()
 {
 }
 
+void Handler::setCode(const std::vector<Instruction>& code)
+{
+    code_ = code;
+    registerCount_ = computeRegisterCount(code_.data(), code_.size());
+}
+
+void Handler::setCode(std::vector<Instruction>&& code)
+{
+    code_ = std::move(code);
+    registerCount_ = computeRegisterCount(code_.data(), code_.size());
+}
+
 std::unique_ptr<Runner> Handler::createRunner()
 {
     return Runner::create(this);
+}
+
+bool Handler::run(void* userdata)
+{
+    auto runner = createRunner();
+    runner->setUserData(userdata);
+    return runner->run();
 }
 
 void Handler::disassemble()

@@ -27,13 +27,13 @@ public:
     void setName(const std::string& name) { name_ = name; }
 
     size_t registerCount() const { return registerCount_; }
-    void setRegisterCount(size_t v) { registerCount_ = v; }
 
     const std::vector<Instruction>& code() const { return code_; }
-    void setCode(const std::vector<Instruction>& code) { code_ = code; }
-    void setCode(std::vector<Instruction>&& code) { code_ = std::move(code); }
+    void setCode(const std::vector<Instruction>& code);
+    void setCode(std::vector<Instruction>&& code);
 
     std::unique_ptr<Runner> createRunner();
+    bool run(void* userdata = nullptr);
 
     void disassemble();
 

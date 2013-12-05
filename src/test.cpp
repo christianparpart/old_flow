@@ -232,7 +232,7 @@ int main()
     program.createHandler("test3", code3); // string test
     program.createHandler("test4", code4); // function call test
     program.createHandler("test5", code5); // handler call test
-    program.createHandler("test6", code6); // handler ref + array call args test
+    program.createHandler("test6")->setCode(code6); // handler ref + array call args test
 
     FlowTest runtime;
     if (!program.link(&runtime))
